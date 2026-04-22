@@ -2,37 +2,70 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control | Verify Coaches</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>body { background-color: #0D0D0D; color: white; }</style>
 </head>
-<body class="p-8">
-    <div class="max-w-4xl mx-auto space-y-10">
-        <div class="flex justify-between items-center">
-            <h1 class="text-3xl font-black italic uppercase">Admin <span class="text-yellow-500">Control</span></h1>
-            <a href="/student" class="text-xs font-bold text-neutral-500 uppercase">Exit</a>
+<body class="p-6 md:p-12">
+    <div class="max-w-4xl mx-auto space-y-12">
+        
+        <div class="flex justify-between items-end border-b border-neutral-800 pb-8">
+            <div>
+                <h1 class="text-4xl font-black italic uppercase">System <span class="text-yellow-500">Admin</span></h1>
+                <p class="text-neutral-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-2">Verification & Payment Desk</p>
+            </div>
+            <a href="/student" class="text-[10px] font-black uppercase text-neutral-500 hover:text-white transition">Exit Dashboard</a>
         </div>
 
-        <div class="space-y-4">
-            <h2 class="text-sm font-black uppercase text-yellow-500 tracking-widest">Pending Submissions</h2>
+        <div class="space-y-6">
+            <div class="flex items-center gap-3">
+                <div class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                <h2 class="text-xs font-black uppercase tracking-widest text-neutral-400">Waiting for Verification</h2>
+            </div>
+
             {% if not pending %}
-                <p class="text-neutral-600 text-xs italic">No new submissions to review.</p>
+            <div class="bg-neutral-900/30 border border-dashed border-neutral-800 p-12 rounded-[2.5rem] text-center">
+                <p class="text-neutral-600 font-bold text-xs uppercase italic">No new coach submissions at the moment.</p>
+            </div>
             {% endif %}
-            {% for coach in pending %}
-            <div class="bg-[#1A1A1A] p-6 rounded-[2rem] border border-neutral-800 flex items-center justify-between shadow-xl">
-                <div class="flex items-center gap-4">
-                    <img src="{{ coach.profile_pic_url }}" class="w-16 h-16 rounded-2xl object-cover border border-neutral-800">
-                    <div>
-                        <h3 class="font-bold text-lg leading-tight">{{ coach.full_name }}</h3>
-                        <p class="text-yellow-500 text-[10px] font-black uppercase tracking-widest">{{ coach.sport_category }}</p>
-                        <p class="text-neutral-500 text-[10px] uppercase font-bold">{{ coach.contact_number }}</p>
+
+            <div class="grid grid-cols-1 gap-4">
+                {% for coach in pending %}
+                <div class="bg-[#1A1A1A] p-6 rounded-[2.5rem] border border-neutral-800 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+                    <div class="flex items-center gap-5">
+                        <img src="{{ coach.profile_pic_url }}" class="w-20 h-20 rounded-[1.5rem] object-cover border border-neutral-800">
+                        <div>
+                            <h3 class="text-xl font-black italic uppercase leading-tight">{{ coach.full_name }}</h3>
+                            <div class="flex gap-3 mt-1">
+                                <span class="text-yellow-500 text-[9px] font-black uppercase px-2 py-0.5 bg-yellow-500/10 rounded-md border border-yellow-500/20">
+                                    {{ coach.sport_category }}
+                                </span>
+                                <span class="text-neutral-500 text-[9px] font-black uppercase px-2 py-0.5 bg-neutral-800 rounded-md">
+                                    {{ coach.location_district }}
+                                </span>
+                            </div>
+                            <p class="text-neutral-600 text-[10px] font-bold mt-2">Contact: {{ coach.contact_number }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col items-center md:items-end gap-3 w-full md:w-auto">
+                        <div class="text-center md:text-right">
+                            <p class="text-[10px] text-red-500 font-black uppercase tracking-widest">Status: Unpaid</p>
+                            <p class="text-[9px] text-neutral-600 font-bold">Waiting for UGX 20,000</p>
+                        </div>
+                        <a href="/admin/mark_paid/{{ coach.id }}" 
+                           class="w-full md:w-auto bg-green-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-green-500 transition shadow-lg shadow-green-900/20 active:scale-95">
+                           Mark as Paid & Go Live
+                        </a>
                     </div>
                 </div>
-                <a href="/admin/verify/{{ coach.id }}" class="bg-green-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-green-500 transition shadow-lg shadow-green-600/20">Verify Profile</a>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
     </div>
+
     <script>lucide.createIcons();</script>
 </body>
 </html>
