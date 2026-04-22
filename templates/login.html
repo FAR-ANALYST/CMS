@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Get My Coach | Uganda</title>
+    <title>Login | Get My Coach Uganda</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body { background-color: #0D0D0D; color: white; }
-        .gold-border:focus { border-color: #EAB308; box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.1); }
+        .input-focus:focus { border-color: #EAB308; box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.1); }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-6">
@@ -19,35 +19,35 @@
                 <i data-lucide="trophy" class="text-black w-10 h-10"></i>
             </div>
             <h1 class="text-3xl font-black uppercase tracking-tighter italic">Get My <span class="text-yellow-500">Coach</span></h1>
-            <p class="text-neutral-500 text-sm font-medium mt-1 uppercase tracking-widest">Uganda Premier Network</p>
+            <p class="text-neutral-500 text-sm font-medium mt-1 uppercase tracking-widest italic">Uganda Premier Network</p>
         </div>
 
         <form action="/login" method="POST" class="space-y-5">
             <div class="relative">
                 <i data-lucide="user" class="absolute left-4 top-4 w-5 h-5 text-neutral-500"></i>
                 <input type="text" name="login_id" placeholder="Username or Email" required
-                    class="w-full bg-black border border-neutral-800 p-4 pl-12 rounded-2xl outline-none transition text-white gold-border">
+                    class="w-full bg-black border border-neutral-800 p-4 pl-12 rounded-2xl outline-none transition text-white input-focus">
             </div>
             
             <div class="relative">
                 <i data-lucide="lock" class="absolute left-4 top-4 w-5 h-5 text-neutral-500"></i>
                 <input type="password" name="password" placeholder="Password" required
-                    class="w-full bg-black border border-neutral-800 p-4 pl-12 rounded-2xl outline-none transition text-white gold-border">
+                    class="w-full bg-black border border-neutral-800 p-4 pl-12 rounded-2xl outline-none transition text-white input-focus">
             </div>
 
-            <button class="w-full bg-yellow-500 text-black font-black py-4 rounded-2xl hover:bg-yellow-400 transition-all transform active:scale-95 shadow-xl shadow-yellow-500/10">
-                SIGN INTO PORTAL
+            <button class="w-full bg-yellow-500 text-black font-black py-4 rounded-2xl hover:bg-yellow-400 transition-all transform active:scale-95 shadow-xl shadow-yellow-500/10 uppercase tracking-widest">
+                Access Portal
             </button>
         </form>
 
         <div class="mt-10 pt-8 border-t border-neutral-800 text-center">
-            <p class="text-neutral-500 text-sm">Need a verified coach profile?</p>
-            <button class="mt-2 text-yellow-500 font-bold text-sm hover:underline">Register as a Coach</button>
+            <p class="text-neutral-500 text-sm italic">Are you an NCS Registered Coach?</p>
+            <a href="https://wa.me/256789268324" class="mt-3 inline-block bg-neutral-900 border border-neutral-800 px-6 py-2 rounded-full text-yellow-500 font-bold text-xs hover:bg-neutral-800 transition">
+                GET VERIFIED ACCESS
+            </a>
         </div>
     </div>
 
-    <script>
-        lucide.createIcons();
-    </script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>
