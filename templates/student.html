@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get My Coach | Uganda Sports Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { background-color: #0D0D0D; color: #FFFFFF; font-family: 'Inter', sans-serif; }
+        .gold-accent { color: #EAB308; }
+        .gold-bg { background-color: #EAB308; }
+        .glass-card { background: rgba(26, 26, 26, 0.8); border: 1px solid #333; backdrop-filter: blur(10px); }
+        .nav-btn { transition: all 0.3s ease; border: 1px solid #444; }
+        .nav-btn:hover { border-color: #EAB308; color: #EAB308; }
+    </style>
+</head>
+<body class="min-h-screen pb-20">
+
+    <nav class="sticky top-0 z-50 glass-card px-6 py-4 flex justify-between items-center mb-8">
+        <div class="flex items-center gap-2">
+            <div class="gold-bg p-1 rounded">
+                <i data-lucide="trophy" class="text-black w-6 h-6"></i>
+            </div>
+            <span class="text-xl font-bold tracking-tighter uppercase">Get My <span class="gold-accent">Coach</span></span>
+        </div>
+
+        <div class="flex gap-3">
+            {% if role == 'admin' %}
+            <a href="/admin" class="nav-btn px-4 py-2 rounded-lg text-sm flex items-center gap-2 bg-yellow-900/20">
+                <i data-lucide="shield-check" class="w-4 h-4"></i> Admin Face
+            </a>
+            {% endif %}
+            
+            <a href="/coach" class="nav-btn px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+                <i data-lucide="user-cog" class="w-4 h-4"></i> Coach Face
+            </a>
+            
+            <a href="/logout" class="nav-btn px-4 py-2 rounded-lg text-sm text-red-400 border-red-900/30">
+                <i data-lucide="log-out" class="w-4 h-4"></i>
+            </a>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6">
+        
+        <section class="mb-12">
+            <h2 class="text-3xl font-bold mb-2">Find a <span class="gold-accent">Pro Coach</span> in Uganda</h2>
+            <p class="text-gray-400 mb-6">Connecting you to NCS-certified trainers for all sports.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-2 bg-neutral-900 rounded-2xl border border-neutral-800">
+                <div class="relative">
+                    <select class="w-full bg-transparent p-4 outline-none appearance-none cursor-pointer">
+                        <option class="bg-black">All Sports (NCS)</option>
+                        <option class="bg-black">Chess</option>
+                        <option class="bg-black">Football</option>
+                        <option class="bg-black">Basketball</option>
+                        <option class="bg-black">Rugby</option>
+                        <option class="bg-black">Boxing</option>
+                    </select>
+                    <i data-lucide="chevron-down" class="absolute right-4 top-5 w-4 h-4 text-gray-500 pointer-events-none"></i>
+                </div>
+
+                <div class="relative border-t md:border-t-0 md:border-l border-neutral-800">
+                    <select class="w-full bg-transparent p-4 outline-none appearance-none cursor-pointer">
+                        <option class="bg-black">Everywhere (District)</option>
+                        <option class="bg-black">Kampala</option>
+                        <option class="bg-black">Wakiso</option>
+                        <option class="bg-black">Entebbe</option>
+                        <option class="bg-black">Jinja</option>
+                        <option class="bg-black">Gulu</option>
+                    </select>
+                    <i data-lucide="map-pin" class="absolute right-4 top-5 w-4 h-4 text-gray-500 pointer-events-none"></i>
+                </div>
+
+                <button class="gold-bg text-black font-bold py-3 px-6 rounded-xl hover:opacity-90 transition-opacity">
+                    Search Coaches
+                </button>
+            </div>
+        </section>
+
+        <section class="mb-12">
+            <div class="flex items-center gap-2 mb-4">
+                <span class="flex h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
+                <h3 class="text-lg font-semibold uppercase tracking-widest text-gray-300">Live Sports Events</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for coach in coaches if coach.live_event_link %}
+                <a href="{{ coach.live_event_link }}" target="_blank" class="glass-card p-4 rounded-xl flex items-center justify-between hover:border-yellow-600 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="play-circle" class="gold-accent"></i>
+                        <div>
+                            <p class="text-sm font-medium">{{ coach.sport_category }} Match</p>
+                            <p class="text-xs text-gray-500">Live with Coach {{ coach.username }}</p>
+                        </div>
+                    </div>
+                    <i data-lucide="external-link" class="w-4 h-4 text-gray-600"></i>
+                </a>
+                {% endfor %}
+            </div>
+        </section>
