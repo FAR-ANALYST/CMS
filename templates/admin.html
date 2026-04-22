@@ -1,41 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><script src="https://cdn.tailwindcss.com"></script><script src="https://unpkg.com/lucide@latest"></script></head>
-<link rel="manifest" href="/manifest.json">
-    <body class="bg-[#0D0D0D] text-white p-8">
-    <div class="max-w-6xl mx-auto">
-        <div class="flex justify-between items-center mb-12">
-            <h1 class="text-3xl font-bold">Admin <span class="text-yellow-500">Control</span></h1>
-            <a href="/student" class="p-3 bg-neutral-900 border border-neutral-800 rounded-xl text-gray-400">Exit Face</a>
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>body { background-color: #0D0D0D; color: white; }</style>
+</head>
+<body class="p-8">
+    <div class="max-w-4xl mx-auto space-y-8">
+        <div class="flex justify-between items-center">
+            <a href="/student" class="text-yellow-500 font-bold text-xs uppercase">← Back to Directory</a>
+            <h1 class="text-2xl font-black italic uppercase">Admin <span class="text-yellow-500">Command</span></h1>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-1 bg-[#1A1A1A] p-8 rounded-3xl border border-neutral-800 h-fit sticky top-8">
-                <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
-                    <i data-lucide="key" class="text-yellow-500 w-5 h-5"></i> Generate NCS Code
-                </h2>
-                <form action="/admin/generate" method="POST" class="space-y-4">
-                    <input type="text" name="sport_abbr" maxlength="3" placeholder="CHE / FOT / RUY" required
-                        class="w-full bg-black border border-neutral-800 p-4 rounded-xl text-center text-2xl font-mono text-yellow-500 uppercase">
-                    <p class="text-xs text-gray-500 text-center">Use 3 letters based on the coach's sport.</p>
-                    <button class="w-full bg-yellow-500 text-black font-bold py-4 rounded-xl">CREATE SINGLE-USE CODE</button>
-                </form>
-            </div>
-
-            <div class="lg:col-span-2 bg-[#1A1A1A] p-8 rounded-3xl border border-neutral-800">
-                <h2 class="text-xl font-bold mb-6">Pending Activation Codes</h2>
-                <div class="space-y-3">
-                    {% for c in codes %}
-                    <div class="flex justify-between items-center bg-black p-4 rounded-2xl border border-neutral-900">
-                        <div>
-                            <p class="font-mono text-xl text-yellow-500 tracking-wider">{{ c.code }}</p>
-                            <p class="text-xs text-gray-500 uppercase font-bold">{{ c.sport_abbreviation }}</p>
-                        </div>
-                        <span class="text-[10px] bg-green-500/10 text-green-500 px-3 py-1 rounded-full uppercase font-bold">Valid for 6 Months</span>
-                    </div>
-                    {% endfor %}
+        <div class="bg-[#1A1A1A] p-8 rounded-[2.5rem] border border-neutral-800 shadow-2xl">
+            <h2 class="text-lg font-bold text-yellow-500 mb-6 uppercase tracking-widest">Generate Access Code</h2>
+            <form action="/admin/generate" method="POST" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="text-[10px] text-neutral-500 font-bold uppercase ml-2">Coach Name</label>
+                    <input type="text" name="coach_name" placeholder="e.g. Kagulire Farouk" required 
+                        class="w-full bg-black border border-neutral-800 p-4 rounded-xl outline-none focus:border-yellow-500 transition">
                 </div>
+                <div>
+                    <label class="text-[10px] text-neutral-500 font-bold uppercase ml-2">Sport Code</label>
+                    <input type="text" name="sport_abbr" placeholder="e.g. CHE" required 
+                        class="w-full bg-black border border-neutral-800 p-4 rounded-xl outline-none focus:border-yellow-500 transition">
+                </div>
+                <div class="flex items-end">
+                    <button class="w-full bg-yellow-500 text-black font-black py-4 rounded-xl uppercase text-xs hover:bg-yellow-400 transition">Generate & Track</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-[#1A1A1A] rounded-[2.5rem] border border-neutral-800 overflow-hidden shadow-2xl">
+            <div class="p-6 border-b border-neutral-800">
+                <h3 class="font-bold uppercase text-xs tracking-widest">Active Database of Generated Codes</h3>
             </div>
+            <table class="w-full text-left">
+                <thead class="bg-black text-neutral-500 text-[10px] uppercase font-black">
+                    <tr>
+                        <th class="p-6">Coach Name</th>
+                        <th class="p-6">Access Code</th>
+                        <th class="p-6">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-neutral-900 text-sm">
+                    {% for code in codes %}
+                    <tr class="hover:bg-white/5 transition">
+                        <td class="p-6 font-bold">{{ code.intended_for_name or 'System Generated' }}</td>
+                        <td class="p-6 text-yellow-500 font-mono font-bold">{{ code.code }}</td>
+                        <td class="p-6">
+                            <span class="px-3 py-1 bg-green-500/10 text-green-500 rounded-full text-[10px] font-black uppercase italic">Unused / Ready</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
     <script>lucide.createIcons();</script>
