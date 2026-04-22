@@ -1,40 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><script src="https://cdn.tailwindcss.com"></script><script src="https://unpkg.com/lucide@latest"></script></head>
-<link rel="manifest" href="/manifest.json">
-    <body class="bg-[#0D0D0D] text-white p-6">
-    <div class="max-w-xl mx-auto">
-        <a href="/student" class="text-gray-500 flex items-center gap-2 mb-8 text-sm"><i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Directory</a>
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>body { background-color: #0D0D0D; color: white; }</style>
+</head>
+<body class="p-6">
+    <div class="max-w-2xl mx-auto space-y-8">
+        <div class="flex justify-between items-center">
+            <a href="/student" class="text-yellow-500 text-xs font-bold uppercase">← Back to Directory</a>
+            <span class="bg-neutral-900 px-3 py-1 rounded-full text-[10px] font-bold text-neutral-500 uppercase tracking-widest">Profile Editor</span>
+        </div>
         
-        <div class="bg-[#1A1A1A] p-8 rounded-3xl border border-neutral-800">
-            {% if profile.is_verified %}
-                <div class="text-center mb-8">
-                    <div class="bg-green-500/10 text-green-500 p-4 rounded-2xl flex items-center justify-center gap-3 mb-6">
-                        <i data-lucide="check-circle" class="w-6 h-6"></i>
-                        <span class="font-bold">Subscription Received! Welcome Coach {{ profile.username }}</span>
-                    </div>
-                    <h2 class="text-2xl font-bold">Manage Your Profile</h2>
-                </div>
+        {% if not profile.is_verified %}
+        <div class="bg-red-500/10 border border-red-500/20 p-8 rounded-[2.5rem] text-center">
+            <h2 class="text-xl font-bold text-red-500 mb-2 uppercase">Activation Required</h2>
+            <p class="text-neutral-400 text-sm mb-6">Enter your verification code to go live on the directory.</p>
+            <form action="/coach" method="POST" class="flex gap-2">
+                <input type="text" name="activation_code" placeholder="e.g. CHE-1234" required class="flex-1 bg-black border border-neutral-800 p-4 rounded-2xl outline-none focus:border-red-500 transition">
+                <button class="bg-red-500 px-8 rounded-2xl font-black text-xs uppercase shadow-lg shadow-red-500/10">Activate</button>
+            </form>
+        </div>
+        {% endif %}
 
-                <form action="/coach/update" method="POST" class="space-y-4">
-                    <input type="text" placeholder="Full Name" class="w-full bg-black border border-neutral-800 p-4 rounded-xl outline-none">
-                    <select class="w-full bg-black border border-neutral-800 p-4 rounded-xl outline-none text-gray-500">
-                        <option>Choose Sport</option>
-                        <option>Chess</option><option>Football</option>
-                    </select>
-                    <textarea placeholder="Tell students about your achievements..." class="w-full bg-black border border-neutral-800 p-4 rounded-xl h-32"></textarea>
-                    <button class="w-full bg-yellow-500 text-black font-bold py-4 rounded-xl">SAVE PROFILE</button>
-                </form>
-            {% else %}
-                <h2 class="text-2xl font-bold text-yellow-500 mb-2">Unlock Your Profile</h2>
-                <p class="text-gray-400 text-sm mb-8">Pay your membership fee and enter the code provided by the Administrator.</p>
-                
-                <form action="/coach" method="POST" class="space-y-6 text-center">
-                    <input type="text" name="activation_code" placeholder="ABC-1234" required
-                        class="w-full bg-black border border-neutral-800 p-6 rounded-2xl text-center text-3xl font-mono text-yellow-500 uppercase tracking-widest">
-                    <button class="w-full bg-yellow-500 text-black font-bold py-4 rounded-xl shadow-lg shadow-yellow-500/10">ACTIVATE ACCOUNT</button>
-                </form>
-            {% endif %}
+        <div class="bg-[#1A1A1A] p-10 rounded-[2.5rem] border border-neutral-800">
+            <h2 class="text-2xl font-black text-yellow-500 mb-8 uppercase tracking-tighter">My Coaching Dashboard</h2>
+            <form action="/coach" method="POST" class="space-y-5">
+                <div>
+                    <label class="text-[10px] text-neutral-500 font-bold uppercase ml-2">Profile Photo URL</label>
+                    <input type="text" name="profile_pic_url" value="{{ profile.profile_pic_url or '' }}" placeholder="Paste direct image link" class="w-full bg-black border border-neutral-800 p-4 rounded-2xl outline-none focus:border-yellow-500 transition">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" name="full_name" value="{{ profile.full_name or '' }}" placeholder="Full Name" class="bg-black border border-neutral-800 p-4 rounded-2xl outline-none focus:border-yellow-500 transition">
+                    <input type="text" name="sport_category" value="{{ profile.sport_category or '' }}" placeholder="Sport (e.g. Football)" class="bg-black border border-neutral-800 p-4 rounded-2xl outline-none focus:border-yellow-500 transition">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="text" name="location_district" value="{{ profile.location_district or '' }}" placeholder="District (e.g. Jinja)" class="bg-black border border-neutral-800 p-4 rounded-2xl outline-none focus:border-yellow-500 transition">
+                    <input type="text" name="contact_number" value="{{ profile.contact_number or '' }}" placeholder="Contact Number" class="bg-black border border-neutral-800 p-4 rounded-2xl outline-none focus:border-yellow-500 transition">
+                </div>
+                <textarea name="bio" placeholder="Write a short bio about your coaching experience..." class="w-full bg-black border border-neutral-800 p-4 rounded-2xl outline-none focus:border-yellow-500 transition h-32">{{ profile.bio or '' }}</textarea>
+                <button class="w-full bg-yellow-500 text-black font-black py-4 rounded-2xl uppercase tracking-widest shadow-xl shadow-yellow-500/10">Save & Publish</button>
+            </form>
         </div>
     </div>
     <script>lucide.createIcons();</script>
