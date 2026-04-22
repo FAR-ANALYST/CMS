@@ -1,19 +1,41 @@
-<div class="card p-8 rounded-xl max-w-lg mx-auto mt-10">
-    {% if profile.is_verified %}
-        <div class="text-center">
-            <div class="bg-green-900 text-green-300 p-4 rounded mb-6">
-                <strong>Welcome Receipt:</strong> Subscription Received! Thank you for joining the National Council of Sports Coaching Network.
-            </div>
-            <h2 class="text-2xl font-bold">Edit Your Coach Profile</h2>
-            </div>
-    {% else %}
-        <h2 class="text-2xl font-bold gold-text mb-4">Activate Coach Access</h2>
-        <p class="text-gray-400 mb-6 text-sm">Please pay your 6-month subscription via Mobile Money. Once verified, enter your unique code below.</p>
+<!DOCTYPE html>
+<html lang="en">
+<head><script src="https://cdn.tailwindcss.com"></script><script src="https://unpkg.com/lucide@latest"></script></head>
+<body class="bg-[#0D0D0D] text-white p-6">
+    <div class="max-w-xl mx-auto">
+        <a href="/student" class="text-gray-500 flex items-center gap-2 mb-8 text-sm"><i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Directory</a>
         
-        <form action="/coach" method="POST" class="space-y-4">
-            <input type="text" name="activation_code" placeholder="Enter Code (e.g. CHE-1234)" 
-                   class="w-full bg-black border border-gray-700 p-4 rounded text-yellow-500 font-mono text-center text-xl">
-            <button class="w-full gold-bg text-black font-bold py-3 rounded">ACTIVATE MY PROFILE</button>
-        </form>
-    {% endif %}
-</div>
+        <div class="bg-[#1A1A1A] p-8 rounded-3xl border border-neutral-800">
+            {% if profile.is_verified %}
+                <div class="text-center mb-8">
+                    <div class="bg-green-500/10 text-green-500 p-4 rounded-2xl flex items-center justify-center gap-3 mb-6">
+                        <i data-lucide="check-circle" class="w-6 h-6"></i>
+                        <span class="font-bold">Subscription Received! Welcome Coach {{ profile.username }}</span>
+                    </div>
+                    <h2 class="text-2xl font-bold">Manage Your Profile</h2>
+                </div>
+
+                <form action="/coach/update" method="POST" class="space-y-4">
+                    <input type="text" placeholder="Full Name" class="w-full bg-black border border-neutral-800 p-4 rounded-xl outline-none">
+                    <select class="w-full bg-black border border-neutral-800 p-4 rounded-xl outline-none text-gray-500">
+                        <option>Choose Sport</option>
+                        <option>Chess</option><option>Football</option>
+                    </select>
+                    <textarea placeholder="Tell students about your achievements..." class="w-full bg-black border border-neutral-800 p-4 rounded-xl h-32"></textarea>
+                    <button class="w-full bg-yellow-500 text-black font-bold py-4 rounded-xl">SAVE PROFILE</button>
+                </form>
+            {% else %}
+                <h2 class="text-2xl font-bold text-yellow-500 mb-2">Unlock Your Profile</h2>
+                <p class="text-gray-400 text-sm mb-8">Pay your membership fee and enter the code provided by the Administrator.</p>
+                
+                <form action="/coach" method="POST" class="space-y-6 text-center">
+                    <input type="text" name="activation_code" placeholder="ABC-1234" required
+                        class="w-full bg-black border border-neutral-800 p-6 rounded-2xl text-center text-3xl font-mono text-yellow-500 uppercase tracking-widest">
+                    <button class="w-full bg-yellow-500 text-black font-bold py-4 rounded-xl shadow-lg shadow-yellow-500/10">ACTIVATE ACCOUNT</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+    <script>lucide.createIcons();</script>
+</body>
+</html>
