@@ -3,41 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Get My Coach Uganda</title>
+    <title>Get My Coach | Uganda</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { background-color: #0D0D0D; color: white; }
+        .gold-border:focus { border-color: #EAB308; box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.1); }
+    </style>
 </head>
-<body class="bg-[#0D0D0D] text-white flex items-center justify-center min-h-screen p-6">
-    <div class="w-full max-w-md bg-[#1A1A1A] p-8 rounded-3xl border border-neutral-800 shadow-2xl">
-        <div class="text-center mb-8">
-            <div class="inline-block p-3 bg-yellow-500 rounded-2xl mb-4">
-                <i data-lucide="trophy" class="text-black w-8 h-8"></i>
+<body class="flex items-center justify-center min-h-screen p-6">
+
+    <div class="w-full max-w-md bg-[#1A1A1A] p-10 rounded-[2.5rem] border border-neutral-800 shadow-2xl">
+        <div class="text-center mb-10">
+            <div class="inline-flex p-4 bg-yellow-500 rounded-3xl mb-4 shadow-lg shadow-yellow-500/20">
+                <i data-lucide="trophy" class="text-black w-10 h-10"></i>
             </div>
-            <h1 class="text-3xl font-bold tracking-tighter uppercase">Get My <span class="text-yellow-500">Coach</span></h1>
-            <p class="text-gray-500 text-sm mt-2">Uganda's Premier Sports Network</p>
+            <h1 class="text-3xl font-black uppercase tracking-tighter italic">Get My <span class="text-yellow-500">Coach</span></h1>
+            <p class="text-neutral-500 text-sm font-medium mt-1 uppercase tracking-widest">Uganda Premier Network</p>
         </div>
 
-        <form action="/login" method="POST" class="space-y-4">
+        <form action="/login" method="POST" class="space-y-5">
             <div class="relative">
-                <i data-lucide="mail" class="absolute left-4 top-3.5 w-5 h-5 text-gray-500"></i>
-                <input type="email" name="email" placeholder="Email Address" required
-                    class="w-full bg-black border border-neutral-800 p-3.5 pl-12 rounded-xl focus:border-yellow-500 outline-none transition">
+                <i data-lucide="user" class="absolute left-4 top-4 w-5 h-5 text-neutral-500"></i>
+                <input type="text" name="login_id" placeholder="Username or Email" required
+                    class="w-full bg-black border border-neutral-800 p-4 pl-12 rounded-2xl outline-none transition text-white gold-border">
             </div>
+            
             <div class="relative">
-                <i data-lucide="lock" class="absolute left-4 top-3.5 w-5 h-5 text-gray-500"></i>
+                <i data-lucide="lock" class="absolute left-4 top-4 w-5 h-5 text-neutral-500"></i>
                 <input type="password" name="password" placeholder="Password" required
-                    class="w-full bg-black border border-neutral-800 p-3.5 pl-12 rounded-xl focus:border-yellow-500 outline-none transition">
+                    class="w-full bg-black border border-neutral-800 p-4 pl-12 rounded-2xl outline-none transition text-white gold-border">
             </div>
-            <button class="w-full bg-yellow-500 text-black font-bold py-4 rounded-xl hover:bg-yellow-400 transition transform active:scale-95">
-                ACCESS PLATFORM
+
+            <button class="w-full bg-yellow-500 text-black font-black py-4 rounded-2xl hover:bg-yellow-400 transition-all transform active:scale-95 shadow-xl shadow-yellow-500/10">
+                SIGN INTO PORTAL
             </button>
         </form>
 
-        <div class="mt-8 pt-6 border-t border-neutral-800 text-center">
-            <p class="text-gray-400 text-sm">Are you a Professional Coach?</p>
-            <button class="mt-2 text-yellow-500 font-semibold text-sm border-b border-yellow-500/30">Register to Market your Profile</button>
+        <div class="mt-10 pt-8 border-t border-neutral-800 text-center">
+            <p class="text-neutral-500 text-sm">Need a verified coach profile?</p>
+            <button class="mt-2 text-yellow-500 font-bold text-sm hover:underline">Register as a Coach</button>
         </div>
     </div>
-    <script>lucide.createIcons();</script>
+
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>
