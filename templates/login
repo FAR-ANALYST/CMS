@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#0D0D0D] text-white flex items-center justify-center min-h-screen">
+    <div class="bg-[#1A1A1A] p-8 rounded-2xl border border-gray-800 w-full max-w-md">
+        <h1 class="text-3xl font-bold mb-6 text-center text-[#EAB308]">GET MY COACH</h1>
+        <form action="/login" method="POST" class="space-y-4">
+            <input type="email" name="email" placeholder="Email Address" class="w-full bg-black border border-gray-700 p-3 rounded" required>
+            <input type="password" name="password" placeholder="Password" class="w-full bg-black border border-gray-700 p-3 rounded" required>
+            <button class="w-full bg-[#EAB308] text-black font-bold py-3 rounded hover:bg-yellow-500 transition">LOGIN</button>
+        </form>
+    </div>
+</body>
+</html>
