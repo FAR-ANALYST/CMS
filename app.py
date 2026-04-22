@@ -6,9 +6,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET", "getyourcoach_final_2026")
+app.secret_key = os.environ.get("FLASK_SECRET", "farouk_ultimate_2026")
 
-# Supabase Config
 supabase: Client = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_ANON_KEY"))
 
 @app.route('/')
@@ -19,12 +18,11 @@ def index():
 def login():
     login_id, password = request.form.get('login_id', '').strip(), request.form.get('password', '')
     if login_id == "FAROUK" and password == "FAROUK2020":
-        session.update({'user_id': "admin_bypass_static", 'role': "admin", 'username': "FAROUK"})
-        return redirect(url_for('student_face'))
+        session.update({'user_id': "admin_bypass_static", 'role': "admin"}); return redirect(url_for('student_face'))
     try:
         user = supabase.table('profiles').select('*').or_(f"username.eq.{login_id},email.eq.{login_id}").execute().data[0]
         auth = supabase.auth.sign_in_with_password({"email": user['email'], "password": password})
-        session.update({'user_id': auth.user.id, 'role': user.get('role', 'student'), 'username': user.get('username')})
+        session.update({'user_id': auth.user.id, 'role': user.get('role', 'student')})
         return redirect(url_for('student_face'))
     except: return "Login Failed."
 
@@ -32,7 +30,7 @@ def login():
 def student_face():
     if 'user_id' not in session: return redirect(url_for('index'))
     
-    # Filtering Logic
+    # FILTER LOGIC: Only show coaches where is_verified is TRUE
     sport = request.args.get('sport')
     loc = request.args.get('location')
     query = supabase.table('profiles').select('*').eq('role', 'coach').eq('is_verified', True)
@@ -42,7 +40,7 @@ def student_face():
     
     coaches = query.execute().data
 
-    # Generate filter lists from all verified coaches
+    # Generate unique filter lists from verified coaches
     all_v = supabase.table('profiles').select('sport_category, location_district').eq('role', 'coach').eq('is_verified', True).execute().data
     sports = sorted(list(set(c['sport_category'] for c in all_v if c['sport_category'])))
     locations = sorted(list(set(c['location_district'] for c in all_v if c['location_district'])))
@@ -53,7 +51,6 @@ def student_face():
 def coach_face():
     if 'user_id' not in session: return redirect(url_for('index'))
     
-    # Admin Bypass
     if session.get('user_id') == "admin_bypass_static":
         return render_template('coach.html', profile={"full_name": "Admin Preview", "is_verified": True}, role="admin")
 
@@ -63,12 +60,12 @@ def coach_face():
         
         if file and file.filename != '':
             filename = secure_filename(f"{session['user_id']}_{file.filename}")
-            temp_path = os.path.join('/tmp', filename)
-            file.save(temp_path)
-            with open(temp_path, 'rb') as f:
+            temp = os.path.join('/tmp', filename); file.save(temp)
+            with open(temp, 'rb') as f:
                 supabase.storage.from_('coaches').upload(f"photos/{filename}", f, {"upsert": "true"})
             img_url = supabase.storage.from_('coaches').get_public_url(f"photos/{filename}")
 
+        # Submit data and reset verification to False until Admin marks Paid
         data = {
             "full_name": request.form.get('full_name'),
             "sport_category": request.form.get('sport_category'),
@@ -76,27 +73,29 @@ def coach_face():
             "contact_number": request.form.get('contact_number'),
             "profile_pic_url": img_url,
             "bio": request.form.get('bio'),
-            "payment_status": "submitted"
+            "payment_status": "submitted", # Sends to Admin
+            "is_verified": False # Hidden from Student Page
         }
         supabase.table('profiles').update(data).eq('id', session['user_id']).execute()
         return redirect(url_for('coach_face'))
 
-    profile_res = supabase.table('profiles').select('*').eq('id', session['user_id']).execute()
-    profile = profile_res.data[0] if profile_res.data else {}
-    return render_template('coach.html', profile=profile, role=session.get('role'))
+    p = supabase.table('profiles').select('*').eq('id', session['user_id']).execute().data
+    return render_template('coach.html', profile=p[0] if p else {}, role=session.get('role'))
 
 @app.route('/admin')
 def admin_face():
-    if session.get('role') != 'admin': return "Denied", 403
-    # Show any coach not yet verified who has submitted data
+    if session.get('role') != 'admin': return "Access Denied", 403
+    
+    # Fetch coaches who have submitted but are not yet verified
     pending = supabase.table('profiles').select('*').eq('role', 'coach').eq('is_verified', False).neq('payment_status', 'pending').execute().data
     return render_template('admin.html', pending=pending)
 
-@app.route('/admin/verify/<id>')
-def verify_coach(id):
+@app.route('/admin/mark_paid/<id>')
+def mark_paid(id):
     if session.get('role') != 'admin': return "Denied", 403
-    supabase.table('profiles').update({"is_verified": True, "payment_status": "verified"}).eq('id', id).execute()
-    return redirect(url_for('admin'))
+    # THE TRIGGER: Mark as verified and paid. This pushes them to the Student Page.
+    supabase.table('profiles').update({"is_verified": True, "payment_status": "paid"}).eq('id', id).execute()
+    return redirect(url_for('admin_face'))
 
 @app.route('/logout')
 def logout():
