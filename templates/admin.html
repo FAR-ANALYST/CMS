@@ -1,56 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background-color: #0D0D0D; color: white; }
-        .gold-text { color: #EAB308; }
-        .gold-bg { background-color: #EAB308; }
-        .card { background-color: #1A1A1A; border: 1px solid #333; }
-    </style>
-</head>
-<body class="p-8">
-    <div class="flex justify-between items-center mb-10">
-        <h1 class="text-3xl font-bold gold-text">ADMINISTRATION FACE</h1>
-        <a href="/student" class="border border-gray-600 px-4 py-2 rounded text-sm hover:bg-gray-800">Switch to Student Face</a>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div class="card p-6 rounded-lg">
-            <h2 class="text-xl font-bold mb-4">Generate Coach Access Code</h2>
-            <form action="/admin/generate-code" method="POST" class="space-y-4">
-                <div>
-                    <label class="block text-sm text-gray-400">Sport Abbreviation (3 Letters)</label>
-                    <input type="text" name="sport_abbr" maxlength="3" placeholder="e.g. CHE, FOT, BOX" 
-                           class="w-full bg-black border border-gray-700 p-3 rounded mt-1 uppercase text-yellow-500 font-mono">
-                </div>
-                <button type="submit" class="w-full gold-bg text-black font-bold py-3 rounded">GENERATE & SAVE</button>
-            </form>
+<head><script src="https://cdn.tailwindcss.com"></script><script src="https://unpkg.com/lucide@latest"></script></head>
+<body class="bg-[#0D0D0D] text-white p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="flex justify-between items-center mb-12">
+            <h1 class="text-3xl font-bold">Admin <span class="text-yellow-500">Control</span></h1>
+            <a href="/student" class="p-3 bg-neutral-900 border border-neutral-800 rounded-xl text-gray-400">Exit Face</a>
         </div>
 
-        <div class="card p-6 rounded-lg">
-            <h2 class="text-xl font-bold mb-4">Unused Coach Codes</h2>
-            <div class="overflow-y-auto max-h-64">
-                <table class="w-full text-left">
-                    <thead class="text-gray-500 text-sm border-b border-gray-800">
-                        <tr>
-                            <th class="pb-2">Code</th>
-                            <th class="pb-2">Sport</th>
-                            <th class="pb-2">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-sm">
-                        {% for code in codes %}
-                        <tr class="border-b border-gray-800">
-                            <td class="py-3 font-mono text-yellow-500">{{ code.code }}</td>
-                            <td class="py-3">{{ code.sport_abbreviation }}</td>
-                            <td class="py-3 text-green-500">Available</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1 bg-[#1A1A1A] p-8 rounded-3xl border border-neutral-800 h-fit sticky top-8">
+                <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+                    <i data-lucide="key" class="text-yellow-500 w-5 h-5"></i> Generate NCS Code
+                </h2>
+                <form action="/admin/generate" method="POST" class="space-y-4">
+                    <input type="text" name="sport_abbr" maxlength="3" placeholder="CHE / FOT / RUY" required
+                        class="w-full bg-black border border-neutral-800 p-4 rounded-xl text-center text-2xl font-mono text-yellow-500 uppercase">
+                    <p class="text-xs text-gray-500 text-center">Use 3 letters based on the coach's sport.</p>
+                    <button class="w-full bg-yellow-500 text-black font-bold py-4 rounded-xl">CREATE SINGLE-USE CODE</button>
+                </form>
+            </div>
+
+            <div class="lg:col-span-2 bg-[#1A1A1A] p-8 rounded-3xl border border-neutral-800">
+                <h2 class="text-xl font-bold mb-6">Pending Activation Codes</h2>
+                <div class="space-y-3">
+                    {% for c in codes %}
+                    <div class="flex justify-between items-center bg-black p-4 rounded-2xl border border-neutral-900">
+                        <div>
+                            <p class="font-mono text-xl text-yellow-500 tracking-wider">{{ c.code }}</p>
+                            <p class="text-xs text-gray-500 uppercase font-bold">{{ c.sport_abbreviation }}</p>
+                        </div>
+                        <span class="text-[10px] bg-green-500/10 text-green-500 px-3 py-1 rounded-full uppercase font-bold">Valid for 6 Months</span>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </div>
+    <script>lucide.createIcons();</script>
 </body>
 </html>
