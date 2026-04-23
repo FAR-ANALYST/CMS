@@ -3,51 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login | Get My Coach Uganda</title>
+    <title>Get My Coach Uganda</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #0D0D0D; color: white; }
-        .input-focus:focus { border-color: #EAB308; box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.1); }
+        body {
+            background-color: #080808;
+            color: white;
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        .bebas { font-family: 'Bebas Neue', sans-serif; }
+
+        /* Subtle grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(234,179,8,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(234,179,8,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        .card {
+            background: #111111;
+            border: 1px solid #1f1f1f;
+            border-radius: 2.5rem;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.8);
+        }
+
+        input {
+            background: #0a0a0a;
+            border: 1px solid #2a2a2a;
+            color: white;
+            border-radius: 1rem;
+            padding: 1rem 1.25rem;
+            width: 100%;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+        input:focus { border-color: #EAB308; }
+        input::placeholder { color: #444; }
+
+        .btn-primary {
+            background: #EAB308;
+            color: #000;
+            font-family: 'Bebas Neue', sans-serif;
+            letter-spacing: 0.15em;
+            font-size: 1.1rem;
+            border-radius: 1rem;
+            padding: 1rem;
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-primary:hover  { background: #fbbf24; }
+        .btn-primary:active { transform: scale(0.98); }
+
+        .error-box {
+            background: rgba(239,68,68,0.08);
+            border: 1px solid rgba(239,68,68,0.2);
+            color: #f87171;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            text-align: center;
+        }
+
+        .logo-badge {
+            width: 4rem; height: 4rem;
+            background: #EAB308;
+            border-radius: 1.25rem;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 1.25rem;
+            box-shadow: 0 0 40px rgba(234,179,8,0.25);
+        }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-6">
+<body>
+    <div class="card w-full max-w-sm p-10">
 
-    <div class="w-full max-w-md bg-[#1A1A1A] p-10 rounded-[2.5rem] border border-neutral-800 shadow-2xl">
-        <div class="text-center mb-10">
-            <div class="inline-flex p-4 bg-yellow-500 rounded-3xl mb-4 shadow-lg shadow-yellow-500/20">
-                <i data-lucide="trophy" class="text-black w-10 h-10"></i>
-            </div>
-            <h1 class="text-3xl font-black uppercase tracking-tighter italic">Get My <span class="text-yellow-500">Coach</span></h1>
-            <p class="text-neutral-500 text-sm font-medium mt-1 uppercase tracking-widest italic">Uganda Premier Network</p>
+        <div class="logo-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                 stroke-width="2.5" stroke="#000" class="w-8 h-8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M16.5 18.75h-9m9 0a3 3 0 0 1 3 3h-15a3 3 0 0 1 3-3m9 0v-3.375
+                         c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125
+                         1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 0 1-.982-3.172
+                         M9.497 14.25a7.454 7.454 0 0 0 .981-3.172M5.25 4.236c-.982.143-1.954.317
+                         -2.916.52A6.003 6.003 0 0 0 7.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99
+                         2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16
+                         6.75.47v1.516M7.73 9.728a6.726 6.726 0 0 0 2.748 1.35m8.272-6.842V4.5
+                         c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 0 1 2.916.52
+                         6.003 6.003 0 0 1-5.395 4.972m0 0a6.726 6.726 0 0 1-2.749 1.35m0 0
+                         a6.772 6.772 0 0 1-3.044 0"/>
+            </svg>
         </div>
 
-        <form action="/login" method="POST" class="space-y-5">
-            <div class="relative">
-                <i data-lucide="user" class="absolute left-4 top-4 w-5 h-5 text-neutral-500"></i>
-                <input type="text" name="login_id" placeholder="Username or Email" required
-                    class="w-full bg-black border border-neutral-800 p-4 pl-12 rounded-2xl outline-none transition text-white input-focus">
-            </div>
-            
-            <div class="relative">
-                <i data-lucide="lock" class="absolute left-4 top-4 w-5 h-5 text-neutral-500"></i>
-                <input type="password" name="password" placeholder="Password" required
-                    class="w-full bg-black border border-neutral-800 p-4 pl-12 rounded-2xl outline-none transition text-white input-focus">
-            </div>
+        <h1 class="bebas text-4xl text-center tracking-widest mb-1">
+            Get My <span class="text-yellow-400">Coach</span>
+        </h1>
+        <p class="text-center text-[10px] font-bold uppercase tracking-[0.25em] text-neutral-600 mb-8">
+            Uganda's Sports Directory
+        </p>
 
-            <button class="w-full bg-yellow-500 text-black font-black py-4 rounded-2xl hover:bg-yellow-400 transition-all transform active:scale-95 shadow-xl shadow-yellow-500/10 uppercase tracking-widest">
-                Access Portal
-            </button>
+        {% if error %}
+        <div class="error-box mb-6">{{ error }}</div>
+        {% endif %}
+
+        <form action="/login" method="POST" class="space-y-4">
+            <div>
+                <input type="text" name="login_id" placeholder="Username or Email" required autocomplete="username">
+            </div>
+            <div>
+                <input type="password" name="password" placeholder="Password" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn-primary mt-2">Sign In</button>
         </form>
 
-        <div class="mt-10 pt-8 border-t border-neutral-800 text-center">
-            <p class="text-neutral-500 text-sm italic">Are you an NCS Registered Coach?</p>
-            <a href="https://wa.me/256789268324" class="mt-3 inline-block bg-neutral-900 border border-neutral-800 px-6 py-2 rounded-full text-yellow-500 font-bold text-xs hover:bg-neutral-800 transition">
-                GET VERIFIED ACCESS
+        <div class="mt-8 pt-6 border-t border-neutral-900 text-center">
+            <p class="text-neutral-600 text-[10px] uppercase font-bold tracking-widest mb-3">
+                Want to join as a coach?
+            </p>
+            <a href="https://wa.me/256789268324"
+               class="text-yellow-400 font-bold text-xs hover:text-yellow-300 uppercase tracking-widest transition">
+                Register via WhatsApp →
             </a>
         </div>
     </div>
-
-    <script>lucide.createIcons();</script>
 </body>
 </html>
