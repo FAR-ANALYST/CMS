@@ -1,111 +1,71 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Coach Dashboard — Get My Coach Uganda</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="min-h-screen bg-gray-50">
-  <nav class="bg-emerald-700 text-white px-6 py-3 flex justify-between items-center shadow">
-    <h1 class="font-bold text-lg">Get My Coach Uganda — Coach</h1>
-    <a href="{{ url_for('logout') }}" class="bg-emerald-800 hover:bg-emerald-900 px-3 py-1 rounded text-sm">Log out</a>
-  </nav>
+{% extends "base.html" %}
+{% block title %}Coach Dashboard{% endblock %}
+{% block content %}
+<h1>Coach Dashboard</h1>
 
-  <div class="max-w-3xl mx-auto p-4 sm:p-6">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for cat, msg in messages %}
-        <div class="mb-3 p-3 rounded-lg text-sm
-          {% if cat == 'error' %}bg-red-100 text-red-700
-          {% elif cat == 'success' %}bg-emerald-100 text-emerald-700
-          {% else %}bg-yellow-100 text-yellow-800{% endif %}">{{ msg }}</div>
-      {% endfor %}
-    {% endwith %}
+{% if is_admin %}
+  <div class="banner banner-info">👑 Admin preview — saving here will register your account as a coach awaiting verification.</div>
+{% endif %}
 
-    <!-- Status banner -->
-    {% set status = profile.payment_status or 'pending' %}
-    {% if status == 'paid' and profile.is_verified %}
-      <div class="bg-emerald-100 border-l-4 border-emerald-600 text-emerald-800 p-4 rounded mb-4">
-        ✅ <strong>Verified & Live!</strong> Students can now find your profile.
-      </div>
-    {% elif status == 'submitted' %}
-      <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 rounded mb-4">
-        ⏳ <strong>Under Review.</strong> Your profile is awaiting admin verification after payment confirmation.
-      </div>
-    {% else %}
-      <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-800 p-4 rounded mb-4">
-        📝 Complete your profile below and submit for verification.
-      </div>
-    {% endif %}
-
-    <div class="bg-white rounded-2xl shadow p-6">
-      <h2 class="text-xl font-bold mb-4">My Coach Profile</h2>
-
-      {% if profile.image_url %}
-        <div class="mb-4 flex items-center gap-3">
-          <img src="{{ profile.image_url }}" alt="Profile" class="w-20 h-20 rounded-full object-cover border-2 border-emerald-500" />
-          <span class="text-sm text-gray-500">Current photo (upload a new one to replace)</span>
-        </div>
-      {% endif %}
-
-      <form method="post" action="{{ url_for('coach_save') }}" enctype="multipart/form-data" class="space-y-4">
-        <div class="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Full Name</label>
-            <input name="full_name" value="{{ profile.full_name or '' }}" required class="w-full border rounded-lg p-2" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Phone (WhatsApp)</label>
-            <input name="phone" value="{{ profile.phone or '' }}" placeholder="+2567..." required class="w-full border rounded-lg p-2" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Sport / Category</label>
-            <select name="category" required class="w-full border rounded-lg p-2">
-              <option value="">-- Select sport --</option>
-              {% for c in categories %}
-                <option value="{{ c }}" {% if profile.category == c %}selected{% endif %}>{{ c }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Location (e.g. Kampala, Wakiso)</label>
-            <input name="location" value="{{ profile.location or '' }}" required class="w-full border rounded-lg p-2" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Years of Experience</label>
-            <input type="number" min="0" name="experience_years" value="{{ profile.experience_years or 0 }}" class="w-full border rounded-lg p-2" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Hourly Rate (UGX)</label>
-            <input type="number" min="0" name="hourly_rate" value="{{ profile.hourly_rate or 0 }}" class="w-full border rounded-lg p-2" />
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium mb-1">Short Bio</label>
-          <textarea name="bio" rows="4" class="w-full border rounded-lg p-2"
-            placeholder="Tell students about your coaching experience...">{{ profile.bio or '' }}</textarea>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium mb-1">Profile Photo</label>
-          <input type="file" name="image" accept="image/*" class="w-full border rounded-lg p-2" />
-          <p class="text-xs text-gray-500 mt-1">PNG, JPG, JPEG or WEBP.</p>
-        </div>
-
-        <div class="flex gap-3 pt-2">
-          <button class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg">
-            {% if status == 'paid' %}Update Profile{% else %}Save & Submit for Verification{% endif %}
-          </button>
-        </div>
-      </form>
-
-      <div class="mt-6 p-4 bg-gray-50 rounded-lg text-sm text-gray-700">
-        <strong>Payment instructions:</strong> Send your registration fee via Mobile Money to
-        <span class="font-mono text-emerald-700">+256 700 000 000</span>, then notify the admin.
-        Once payment is confirmed, your profile goes live for students.
-      </div>
-    </div>
+{% if profile.payment_status == 'paid' and profile.is_verified %}
+  <div class="banner banner-success">
+    <strong>✅ Verified & Live</strong> — students can find your profile.
   </div>
-</body>
-</html>
+{% elif profile.payment_status == 'submitted' %}
+  <div class="banner banner-warning">
+    <strong>⏳ Under review</strong> — an admin will verify your profile after payment.
+  </div>
+{% else %}
+  <div class="banner banner-muted">
+    <strong>📝 Complete your profile</strong> — fill in your details and submit for verification.
+  </div>
+{% endif %}
+
+<section class="card">
+  <h2>Your profile</h2>
+  <form method="post" enctype="multipart/form-data" class="stack">
+    <div class="profile-photo-row">
+      {% if profile.image_url %}
+        <img src="{{ profile.image_url }}" alt="Profile photo" class="avatar-lg" />
+      {% else %}
+        <div class="avatar-lg avatar-fallback">{{ (profile.full_name or '?')[0]|upper }}</div>
+      {% endif %}
+      <label class="btn-ghost">
+        Upload photo
+        <input type="file" name="photo" accept="image/*" hidden />
+      </label>
+    </div>
+
+    <div class="grid-2">
+      <label>Full name <input name="full_name" value="{{ profile.full_name or '' }}" required /></label>
+      <label>Phone <input name="phone" value="{{ profile.phone or '' }}" placeholder="+256 7XX XXX XXX" /></label>
+    </div>
+
+    <div class="grid-2">
+      <label>Sport category
+        <select name="category" required>
+          <option value="" disabled {% if not profile.category %}selected{% endif %}>Select a sport</option>
+          {% for c in SPORT_CATEGORIES %}
+            <option value="{{ c }}" {% if profile.category == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Location <input name="location" value="{{ profile.location or '' }}" placeholder="e.g. Kampala" /></label>
+    </div>
+
+    <div class="grid-2">
+      <label>Years of experience <input type="number" min="0" name="experience_years" value="{{ profile.experience_years or 0 }}" /></label>
+      <label>Hourly rate (UGX) <input type="number" min="0" name="hourly_rate" value="{{ profile.hourly_rate or 0 }}" /></label>
+    </div>
+
+    <label>Bio
+      <textarea name="bio" rows="4" placeholder="Tell students about your coaching experience…">{{ profile.bio or '' }}</textarea>
+    </label>
+
+    <div class="row-between">
+      <span class="badge">Status: {{ profile.payment_status }}</span>
+      <button class="btn-primary" type="submit">Save profile</button>
+    </div>
+  </form>
+</section>
+{% endblock %}
