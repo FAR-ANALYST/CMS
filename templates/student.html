@@ -1,95 +1,46 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Find a Coach — Get My Coach Uganda</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="min-h-screen bg-gray-50">
-  <nav class="bg-emerald-700 text-white px-6 py-3 flex justify-between items-center shadow">
-    <h1 class="font-bold text-lg">Get My Coach Uganda</h1>
-    <a href="{{ url_for('logout') }}" class="bg-emerald-800 hover:bg-emerald-900 px-3 py-1 rounded text-sm">Log out</a>
-  </nav>
+{% extends "base.html" %}
+{% block title %}Find a coach{% endblock %}
+{% block content %}
+<h1>Find a coach</h1>
 
-  <div class="max-w-6xl mx-auto p-4 sm:p-6">
-    <div class="mb-6">
-      <h2 class="text-2xl font-bold text-gray-800">Find a verified coach</h2>
-      <p class="text-gray-600 text-sm">Browse coaches across Uganda by sport and location.</p>
-    </div>
-
-    <!-- Filters -->
-    <form method="get" class="bg-white rounded-2xl shadow p-4 mb-6 grid sm:grid-cols-3 gap-3">
-      <select name="category" class="border rounded-lg p-2">
-        <option value="">All sports</option>
-        {% for c in categories %}
-          <option value="{{ c }}" {% if selected_category == c %}selected{% endif %}>{{ c }}</option>
-        {% endfor %}
-      </select>
-      <input name="location" value="{{ selected_location }}" placeholder="Location (e.g. Kampala)"
-        class="border rounded-lg p-2" />
-      <button class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-lg">
-        Search
-      </button>
-    </form>
-
-    <!-- Quick category chips -->
-    <div class="flex flex-wrap gap-2 mb-6">
-      <a href="{{ url_for('student_dashboard') }}"
-        class="px-3 py-1 rounded-full text-sm border {% if not selected_category %}bg-emerald-600 text-white border-emerald-600{% else %}bg-white text-gray-700{% endif %}">All</a>
-      {% for c in categories %}
-        <a href="{{ url_for('student_dashboard', category=c) }}"
-          class="px-3 py-1 rounded-full text-sm border {% if selected_category == c %}bg-emerald-600 text-white border-emerald-600{% else %}bg-white text-gray-700 hover:bg-gray-100{% endif %}">
-          {{ c }}
-        </a>
+<form method="get" class="card filters">
+  <label>Sport
+    <select name="category">
+      <option value="">All sports</option>
+      {% for c in SPORT_CATEGORIES %}
+        <option value="{{ c }}" {% if c == category %}selected{% endif %}>{{ c }}</option>
       {% endfor %}
-    </div>
+    </select>
+  </label>
+  <label>Location <input name="location" value="{{ location }}" placeholder="e.g. Kampala" /></label>
+  <button class="btn-primary" type="submit">Search</button>
+</form>
 
-    <!-- Coach grid -->
-    {% if coaches %}
-      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {% for c in coaches %}
-          <div class="bg-white rounded-2xl shadow hover:shadow-lg transition p-5">
-            <div class="flex items-center gap-3 mb-3">
-              {% if c.image_url %}
-                <img src="{{ c.image_url }}" alt="{{ c.full_name }}"
-                  class="w-16 h-16 rounded-full object-cover border-2 border-emerald-500" />
-              {% else %}
-                <div class="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xl">
-                  {{ (c.full_name or '?')[0] | upper }}
-                </div>
-              {% endif %}
-              <div>
-                <h3 class="font-bold text-gray-800">{{ c.full_name }}</h3>
-                <p class="text-xs text-emerald-700 font-medium">✓ Verified</p>
-              </div>
-            </div>
-
-            <div class="space-y-1 text-sm text-gray-700">
-              <p><span class="font-medium">Sport:</span> {{ c.category or '—' }}</p>
-              <p><span class="font-medium">Location:</span> {{ c.location or '—' }}</p>
-              <p><span class="font-medium">Experience:</span> {{ c.experience_years or 0 }} yrs</p>
-              <p><span class="font-medium">Rate:</span> UGX {{ '{:,}'.format(c.hourly_rate or 0) }}/hr</p>
-            </div>
-
-            {% if c.bio %}
-              <p class="text-sm text-gray-600 mt-3 line-clamp-3">{{ c.bio }}</p>
-            {% endif %}
-
-            {% if c.phone %}
-              <a href="https://wa.me/{{ c.phone | replace('+','') | replace(' ','') }}" target="_blank"
-                class="mt-4 block text-center bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-lg">
-                Contact on WhatsApp
-              </a>
-            {% endif %}
+{% if not coaches %}
+  <div class="card empty">No verified coaches match your search yet.</div>
+{% else %}
+  <div class="grid-cards">
+    {% for c in coaches %}
+      <article class="card">
+        <div class="row">
+          {% if c.image_url %}<img src="{{ c.image_url }}" class="avatar" />
+          {% else %}<div class="avatar avatar-fallback">{{ (c.full_name or '?')[0]|upper }}</div>{% endif %}
+          <div>
+            <h3>{{ c.full_name }}</h3>
+            <p class="muted small">{{ c.category }} · {{ c.location }}</p>
           </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="bg-white rounded-2xl shadow p-10 text-center">
-        <p class="text-gray-500">No verified coaches match your filters yet. Try another sport or location.</p>
-      </div>
-    {% endif %}
+        </div>
+        <ul class="details">
+          <li><b>Experience:</b> {{ c.experience_years or 0 }} yrs</li>
+          <li><b>Rate:</b> UGX {{ '{:,}'.format(c.hourly_rate or 0) }}/hr</li>
+          <li><b>Phone:</b> {{ c.phone or '—' }}</li>
+          {% if c.bio %}<li class="italic">"{{ c.bio }}"</li>{% endif %}
+        </ul>
+        {% if c.phone %}
+          <a class="btn-primary w-full" href="tel:{{ c.phone }}">📞 Call coach</a>
+        {% endif %}
+      </article>
+    {% endfor %}
   </div>
-</body>
-</html>
+{% endif %}
+{% endblock %}
