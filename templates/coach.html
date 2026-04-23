@@ -7,40 +7,36 @@
     <style>body { background-color: #0D0D0D; color: white; }</style>
 </head>
 <body class="p-6">
-    <div class="max-w-xl mx-auto space-y-8">
-        <a href="/student" class="text-yellow-500 font-bold text-xs uppercase">← Back to Directory</a>
+    <div class="max-w-xl mx-auto bg-[#1A1A1A] p-8 rounded-[3rem] border border-neutral-800">
+        <h2 class="text-2xl font-black mb-8 uppercase italic">My <span class="text-yellow-500">Coach Profile</span></h2>
         
-        <div class="bg-[#1A1A1A] p-8 rounded-[3rem] border border-neutral-800">
-            <h2 class="text-2xl font-black text-white mb-6 uppercase italic">Coach <span class="text-yellow-500">Profile</span></h2>
-            
-            <form action="/coach" method="POST" enctype="multipart/form-data" class="space-y-6">
-                <div class="text-center">
-                    <div class="w-36 h-36 mx-auto rounded-[2rem] border-4 border-yellow-500/10 overflow-hidden bg-black mb-4">
-                        <img id="preview" src="{{ profile.profile_pic_url or 'https://ui-avatars.com/api/?name=Coach' }}" class="w-full h-full object-cover">
-                    </div>
-                    <label class="bg-neutral-800 px-6 py-2 rounded-xl cursor-pointer text-[10px] font-black uppercase">
-                        <i data-lucide="camera" class="inline w-3 h-3 mr-2 text-yellow-500"></i> Change Photo
-                        <input type="file" name="profile_image" accept="image/*" capture="user" class="hidden" onchange="previewImg(this)">
-                    </label>
-                    <input type="hidden" name="existing_url" value="{{ profile.profile_pic_url }}">
+        <form action="/coach" method="POST" enctype="multipart/form-data" class="space-y-6">
+            <div class="text-center">
+                <div class="w-32 h-32 mx-auto rounded-3xl border-4 border-yellow-500/10 overflow-hidden bg-black mb-4">
+                    <img id="preview" src="{{ profile.profile_pic_url or 'https://ui-avatars.com/api/?name=Coach' }}" class="w-full h-full object-cover">
                 </div>
+                <label class="bg-neutral-800 px-6 py-2 rounded-xl cursor-pointer text-[10px] font-black uppercase">
+                    <i data-lucide="camera" class="inline w-3 h-3 mr-2"></i> Take Photo
+                    <input type="file" name="profile_image" accept="image/*" capture="user" class="hidden" onchange="previewImg(this)">
+                </label>
+                <input type="hidden" name="existing_url" value="{{ profile.profile_pic_url }}">
+            </div>
 
-                <div class="grid grid-cols-1 gap-4">
-                    <input type="text" name="full_name" value="{{ profile.full_name or '' }}" placeholder="Professional Name" class="bg-black border border-neutral-800 p-4 rounded-xl outline-none focus:border-yellow-500">
-                    <input type="text" name="sport_category" value="{{ profile.sport_category or '' }}" placeholder="Sport (e.g. Boxing)" class="bg-black border border-neutral-800 p-4 rounded-xl outline-none focus:border-yellow-500">
-                    <input type="text" name="location_district" value="{{ profile.location_district or '' }}" placeholder="Location (e.g. Kampala)" class="bg-black border border-neutral-800 p-4 rounded-xl outline-none focus:border-yellow-500">
-                    <input type="text" name="contact_number" value="{{ profile.contact_number or '' }}" placeholder="Phone Number" class="bg-black border border-neutral-800 p-4 rounded-xl outline-none focus:border-yellow-500">
-                    <textarea name="bio" placeholder="Professional Bio..." class="bg-black border border-neutral-800 p-4 rounded-xl h-24 focus:border-yellow-500">{{ profile.bio or '' }}</textarea>
-                </div>
+            <div class="space-y-4">
+                <input type="text" name="full_name" value="{{ profile.full_name or '' }}" placeholder="Full Name" class="w-full bg-black border border-neutral-800 p-4 rounded-xl focus:border-yellow-500 outline-none">
+                <input type="text" name="sport_category" value="{{ profile.sport_category or '' }}" placeholder="Sport (e.g. Boxing)" class="w-full bg-black border border-neutral-800 p-4 rounded-xl focus:border-yellow-500 outline-none">
+                <input type="text" name="location_district" value="{{ profile.location_district or '' }}" placeholder="District (e.g. Gulu)" class="w-full bg-black border border-neutral-800 p-4 rounded-xl focus:border-yellow-500 outline-none">
+                <input type="text" name="contact_number" value="{{ profile.contact_number or '' }}" placeholder="Phone Number" class="w-full bg-black border border-neutral-800 p-4 rounded-xl focus:border-yellow-500 outline-none">
+                <textarea name="bio" placeholder="Bio..." class="w-full bg-black border border-neutral-800 p-4 rounded-xl h-24 focus:border-yellow-500 outline-none">{{ profile.bio or '' }}</textarea>
+            </div>
 
-                <div class="p-5 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl">
-                    <p class="text-[10px] text-yellow-500 font-bold uppercase text-center mb-1">Activation Fee: 20,000 UGX</p>
-                    <p class="text-[9px] text-neutral-500 uppercase text-center">MTN: 0789268324 | AIRTEL: 0757307541</p>
-                </div>
+            <div class="p-5 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl text-center">
+                <p class="text-[10px] text-yellow-500 font-black uppercase">Activation: 20,000 UGX</p>
+                <p class="text-[9px] text-neutral-500 uppercase mt-1">MTN: 0789268324 | Airtel: 0757307541</p>
+            </div>
 
-                <button class="w-full bg-yellow-500 text-black font-black py-4 rounded-2xl uppercase tracking-widest text-xs">Submit for Verification</button>
-            </form>
-        </div>
+            <button class="w-full bg-yellow-500 text-black font-black py-4 rounded-2xl uppercase tracking-widest text-xs">Submit to Admin</button>
+        </form>
     </div>
     <script>
         function previewImg(input) {
