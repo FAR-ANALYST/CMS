@@ -1,346 +1,365 @@
 """
-Get My Coach Uganda - Flask Application
-Connects students with verified sports coaches across Uganda.
-
-Flow:
-  1. Coach signs up & submits profile  -> payment_status='submitted', is_verified=False
-  2. Admin sees pending profile        -> clicks "Mark Paid & Go Live"
-  3. Coach goes live                   -> payment_status='paid', is_verified=True
-  4. Students see the coach in the public directory
-  5. Admin can "Remove" anytime        -> hidden from students again
+Get My Coach Uganda — Flask version
+-----------------------------------
+Mirrors the React/Lovable app:
+  • Roles: admin, coach, student
+  • Coach submits profile -> "submitted" -> Admin verifies -> "paid" + verified
+  • Verified coaches appear in the public Student directory
+  • Admin (FAROUK / FAROUK2020) can also register coaches from the Coach page
 """
-
 import os
 import uuid
+from datetime import datetime
 from functools import wraps
+
 from flask import (
     Flask, render_template, request, redirect, url_for,
-    session, flash, jsonify
+    session, flash, abort, send_from_directory
 )
-from supabase import create_client, Client
+from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from flask_sqlalchemy import SQLAlchemy
 
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------- config
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+UPLOAD_DIR = os.path.join(BASE_DIR, "static", "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET", "change-me-in-production")
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(BASE_DIR, "instance", "app.db")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["UPLOAD_FOLDER"] = UPLOAD_DIR
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY")
+db = SQLAlchemy(app)
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    raise RuntimeError(
-        "Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables."
-    )
-
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@getmycoach.ug")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
-
-# Magic super-admin shortcut: typing this username/password in ANY login tab
-# (student, coach, or admin) instantly logs the user in as admin.
-SUPER_ADMIN_USERNAME = "FAROUK"
-SUPER_ADMIN_PASSWORD = "FAROUK2020"
-
-BUCKET = "coach-images"
-ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
-
+# ---------------------------------------------------------------- constants
 SPORT_CATEGORIES = [
-    "Chess", "Football", "Volleyball", "Netball", "Scrabble",
-    "Athletics", "Gym", "Handball", "Swimming", "Checkers",
+    "Chess", "Football", "Basketball", "Tennis", "Swimming",
+    "Athletics", "Volleyball", "Rugby", "Boxing", "Martial Arts",
+    "Cricket", "Cycling",
 ]
+ADMIN_USERNAME = "FAROUK"
+ADMIN_PASSWORD = "FAROUK2020"
+ADMIN_EMAIL = "farouk@getmycoach.ug"
+ALLOWED_EXT = {"png", "jpg", "jpeg", "webp", "gif"}
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-def allowed_file(filename: str) -> bool:
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+# ---------------------------------------------------------------- models
+class User(db.Model):
+    __tablename__ = "users"
+    id = db.Column(db.String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    email = db.Column(db.String(180), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    full_name = db.Column(db.String(120), default="")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    roles = db.relationship("UserRole", backref="user", cascade="all, delete-orphan")
+    profile = db.relationship("Profile", backref="user", uselist=False, cascade="all, delete-orphan")
 
-def login_required(role=None):
-    def decorator(fn):
-        @wraps(fn)
-        def wrapper(*args, **kwargs):
-            if "user_id" not in session:
-                flash("Please log in to continue.", "warning")
-                return redirect(url_for("login"))
-            if role and session.get("role") != role:
-                flash("You do not have access to that page.", "error")
-                return redirect(url_for("login"))
-            return fn(*args, **kwargs)
-        return wrapper
-    return decorator
+    def has_role(self, role):
+        return any(r.role == role for r in self.roles)
 
-
-def admin_required(fn):
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        if not session.get("is_admin"):
-            flash("Admin access required.", "error")
-            return redirect(url_for("login"))
-        return fn(*args, **kwargs)
-    return wrapper
-
-
-def upload_image(file_storage) -> str | None:
-    """Upload image to Supabase storage, return the public URL (or None)."""
-    if not file_storage or file_storage.filename == "":
-        return None
-    if not allowed_file(file_storage.filename):
+    def primary_role(self):
+        names = {r.role for r in self.roles}
+        for r in ("admin", "coach", "student"):
+            if r in names:
+                return r
         return None
 
-    ext = file_storage.filename.rsplit(".", 1)[1].lower()
-    path = f"{uuid.uuid4().hex}.{ext}"
-    file_bytes = file_storage.read()
-
-    supabase.storage.from_(BUCKET).upload(
-        path,
-        file_bytes,
-        file_options={"content-type": file_storage.mimetype, "upsert": "true"},
-    )
-    return supabase.storage.from_(BUCKET).get_public_url(path)
+    def add_role(self, role):
+        if not self.has_role(role):
+            db.session.add(UserRole(user_id=self.id, role=role))
 
 
-# ---------------------------------------------------------------------------
-# Auth routes
-# ---------------------------------------------------------------------------
+class UserRole(db.Model):
+    __tablename__ = "user_roles"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey("users.id"), nullable=False)
+    role = db.Column(db.String(20), nullable=False)  # admin | coach | student
+    __table_args__ = (db.UniqueConstraint("user_id", "role", name="uq_user_role"),)
+
+
+class Profile(db.Model):
+    __tablename__ = "profiles"
+    id = db.Column(db.String, db.ForeignKey("users.id"), primary_key=True)
+    full_name = db.Column(db.String(120), default="")
+    phone = db.Column(db.String(40), default="")
+    category = db.Column(db.String(40), default="")
+    experience_years = db.Column(db.Integer, default=0)
+    hourly_rate = db.Column(db.Integer, default=0)
+    location = db.Column(db.String(120), default="")
+    bio = db.Column(db.Text, default="")
+    image_url = db.Column(db.String(255), default="")
+    is_verified = db.Column(db.Boolean, default=False)
+    payment_status = db.Column(db.String(20), default="pending")  # pending|submitted|paid
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# ---------------------------------------------------------------- helpers
+def current_user():
+    uid = session.get("user_id")
+    if not uid:
+        return None
+    return db.session.get(User, uid)
+
+
+@app.context_processor
+def inject_globals():
+    u = current_user()
+    return {
+        "current_user": u,
+        "user_role": u.primary_role() if u else None,
+        "SPORT_CATEGORIES": SPORT_CATEGORIES,
+    }
+
+
+def login_required(view):
+    @wraps(view)
+    def w(*a, **kw):
+        if not current_user():
+            flash("Please sign in to continue.", "warning")
+            return redirect(url_for("auth"))
+        return view(*a, **kw)
+    return w
+
+
+def role_required(*roles):
+    def deco(view):
+        @wraps(view)
+        def w(*a, **kw):
+            u = current_user()
+            if not u:
+                return redirect(url_for("auth"))
+            if not any(u.has_role(r) for r in roles):
+                abort(403)
+            return view(*a, **kw)
+        return w
+    return deco
+
+
+def allowed_file(name):
+    return "." in name and name.rsplit(".", 1)[1].lower() in ALLOWED_EXT
+
+
+def seed_admin():
+    """Make sure the FAROUK admin account exists."""
+    if not User.query.filter_by(email=ADMIN_EMAIL).first():
+        u = User(
+            email=ADMIN_EMAIL,
+            full_name=ADMIN_USERNAME,
+            password_hash=generate_password_hash(ADMIN_PASSWORD),
+        )
+        db.session.add(u)
+        db.session.flush()
+        db.session.add(UserRole(user_id=u.id, role="admin"))
+        db.session.add(Profile(id=u.id, full_name=ADMIN_USERNAME))
+        db.session.commit()
+
+
+# ---------------------------------------------------------------- routes
 @app.route("/")
 def index():
-    return redirect(url_for("login"))
+    u = current_user()
+    if not u:
+        return redirect(url_for("auth"))
+    role = u.primary_role()
+    if role == "admin":
+        return redirect(url_for("admin"))
+    if role == "coach":
+        return redirect(url_for("coach"))
+    return redirect(url_for("student"))
 
 
-@app.route("/login", methods=["GET", "POST"])
-def login():
+# ----- AUTH ------------------------------------------------------
+@app.route("/auth", methods=["GET", "POST"])
+def auth():
+    """Single page for both login and signup, plus FAROUK shortcut."""
     if request.method == "POST":
-        role = request.form.get("role", "student")
+        mode = request.form.get("mode", "login")
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
 
-        # 🔑 Super-admin shortcut — works from ANY tab, no extra checks.
-        # If the user types FAROUK / FAROUK2020 (in either email or password
-        # box), they are logged straight into the admin dashboard.
-        raw_email = (request.form.get("email") or "").strip()
-        if (
-            raw_email.upper() == SUPER_ADMIN_USERNAME
-            and password == SUPER_ADMIN_PASSWORD
-        ):
-            session.clear()
-            session["is_admin"] = True
-            session["user_id"] = "super-admin"
-            session["role"] = "admin"
-            flash("Welcome back, FAROUK 👑", "success")
-            return redirect(url_for("admin_dashboard"))
+        # FAROUK super-admin shortcut: works from the login form too
+        if email.upper() == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+            seed_admin()
+            admin = User.query.filter_by(email=ADMIN_EMAIL).first()
+            session["user_id"] = admin.id
+            flash("Welcome, FAROUK 👑", "success")
+            return redirect(url_for("admin"))
 
-        # Standard admin login (email + password)
-        if role == "admin":
-            if email == ADMIN_EMAIL and password == ADMIN_PASSWORD:
-                session.clear()
-                session["is_admin"] = True
-                session["user_id"] = "admin"
-                session["role"] = "admin"
-                return redirect(url_for("admin_dashboard"))
-            flash("Invalid admin credentials.", "error")
-            return redirect(url_for("login"))
-
-        try:
-            auth = supabase.auth.sign_in_with_password(
-                {"email": email, "password": password}
+        if mode == "signup":
+            full_name = request.form.get("full_name", "").strip()
+            role = request.form.get("role", "student")
+            if role not in ("student", "coach"):
+                role = "student"
+            if not email or not password:
+                flash("Email and password are required.", "danger")
+                return redirect(url_for("auth"))
+            if User.query.filter_by(email=email).first():
+                flash("That email is already registered.", "danger")
+                return redirect(url_for("auth"))
+            user = User(
+                email=email,
+                full_name=full_name,
+                password_hash=generate_password_hash(password),
             )
-            session.clear()
-            session["user_id"] = auth.user.id
-            session["email"] = email
-            session["role"] = role
-            if role == "coach":
-                return redirect(url_for("coach_dashboard"))
-            return redirect(url_for("student_dashboard"))
-        except Exception as e:
-            flash(f"Login failed: {e}", "error")
-            return redirect(url_for("login"))
+            db.session.add(user)
+            db.session.flush()
+            db.session.add(UserRole(user_id=user.id, role=role))
+            db.session.add(Profile(id=user.id, full_name=full_name))
+            db.session.commit()
+            session["user_id"] = user.id
+            flash("Account created.", "success")
+            return redirect(url_for("index"))
 
-    return render_template("login.html")
+        # login
+        user = User.query.filter_by(email=email).first()
+        if not user or not check_password_hash(user.password_hash, password):
+            flash("Invalid email or password.", "danger")
+            return redirect(url_for("auth"))
+        session["user_id"] = user.id
+        return redirect(url_for("index"))
 
-
-@app.route("/signup", methods=["POST"])
-def signup():
-    role = request.form.get("role", "student")
-    email = request.form.get("email", "").strip().lower()
-    password = request.form.get("password", "")
-    full_name = request.form.get("full_name", "").strip()
-
-    try:
-        auth = supabase.auth.sign_up({"email": email, "password": password})
-        user_id = auth.user.id
-
-        # Create profile row
-        supabase.table("profiles").insert({
-            "id": user_id,
-            "email": email,
-            "full_name": full_name,
-            "role": role,
-            "is_verified": False,
-            "payment_status": "pending",
-        }).execute()
-
-        session.clear()
-        session["user_id"] = user_id
-        session["email"] = email
-        session["role"] = role
-
-        flash("Account created! Please complete your profile.", "success")
-        if role == "coach":
-            return redirect(url_for("coach_dashboard"))
-        return redirect(url_for("student_dashboard"))
-    except Exception as e:
-        flash(f"Signup failed: {e}", "error")
-        return redirect(url_for("login"))
+    return render_template("auth.html")
 
 
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("login"))
+    flash("Signed out.", "info")
+    return redirect(url_for("auth"))
 
 
-# ---------------------------------------------------------------------------
-# Coach
-# ---------------------------------------------------------------------------
-@app.route("/coach", methods=["GET"])
-@login_required(role="coach")
-def coach_dashboard():
-    user_id = session["user_id"]
-    res = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
-    profile = res.data or {}
-    return render_template(
-        "coach.html",
-        profile=profile,
-        categories=SPORT_CATEGORIES,
-    )
+# ----- COACH -----------------------------------------------------
+@app.route("/coach", methods=["GET", "POST"])
+@login_required
+def coach():
+    """Coach profile editor.
+    Admin can also use this page; saving will tag them as a coach so the
+    submission appears in the admin verification queue (matches the React app).
+    """
+    u = current_user()
+    profile = u.profile or Profile(id=u.id)
+    if not u.profile:
+        db.session.add(profile)
+        db.session.commit()
+
+    if request.method == "POST":
+        # photo upload
+        file = request.files.get("photo")
+        if file and file.filename:
+            if not allowed_file(file.filename):
+                flash("Unsupported image type.", "danger")
+                return redirect(url_for("coach"))
+            ext = secure_filename(file.filename).rsplit(".", 1)[1].lower()
+            fname = f"{u.id}_{uuid.uuid4().hex}.{ext}"
+            file.save(os.path.join(app.config["UPLOAD_FOLDER"], fname))
+            profile.image_url = url_for("static", filename=f"uploads/{fname}")
+
+        profile.full_name = request.form.get("full_name", "").strip()
+        profile.phone = request.form.get("phone", "").strip()
+        profile.category = request.form.get("category", "").strip()
+        profile.location = request.form.get("location", "").strip()
+        profile.bio = request.form.get("bio", "").strip()
+        try:
+            profile.experience_years = int(request.form.get("experience_years") or 0)
+        except ValueError:
+            profile.experience_years = 0
+        try:
+            profile.hourly_rate = int(request.form.get("hourly_rate") or 0)
+        except ValueError:
+            profile.hourly_rate = 0
+
+        # Mark as submitted unless admin has already approved
+        if profile.payment_status != "paid":
+            profile.payment_status = "submitted"
+
+        # Ensure user is tagged as coach so admin sees them
+        u.add_role("coach")
+
+        db.session.commit()
+        flash("Profile saved. Awaiting admin verification.", "success")
+        return redirect(url_for("coach"))
+
+    return render_template("coach.html", profile=profile, is_admin=u.has_role("admin"))
 
 
-@app.route("/coach/save", methods=["POST"])
-@login_required(role="coach")
-def coach_save():
-    user_id = session["user_id"]
-
-    update = {
-        "full_name": request.form.get("full_name", "").strip(),
-        "phone": request.form.get("phone", "").strip(),
-        "category": request.form.get("category", "").strip(),
-        "experience_years": int(request.form.get("experience_years") or 0),
-        "hourly_rate": int(request.form.get("hourly_rate") or 0),
-        "location": request.form.get("location", "").strip(),
-        "bio": request.form.get("bio", "").strip(),
-    }
-
-    # Optional new image
-    image_file = request.files.get("image")
-    if image_file and image_file.filename:
-        url = upload_image(image_file)
-        if url:
-            update["image_url"] = url
-
-    # Mark as submitted -> awaiting admin verification after payment
-    existing = (
-        supabase.table("profiles").select("payment_status").eq("id", user_id).single().execute().data
-    )
-    if not existing or existing.get("payment_status") in (None, "pending"):
-        update["payment_status"] = "submitted"
-        update["is_verified"] = False
-
-    supabase.table("profiles").update(update).eq("id", user_id).execute()
-    flash("Profile saved! It is now awaiting admin verification.", "success")
-    return redirect(url_for("coach_dashboard"))
-
-
-# ---------------------------------------------------------------------------
-# Student
-# ---------------------------------------------------------------------------
-@app.route("/student")
-@login_required(role="student")
-def student_dashboard():
-    category = request.args.get("category", "").strip()
-    location = request.args.get("location", "").strip()
-
-    query = (
-        supabase.table("profiles")
-        .select("*")
-        .eq("role", "coach")
-        .eq("is_verified", True)
-        .eq("payment_status", "paid")
-    )
-    if category:
-        query = query.eq("category", category)
-    if location:
-        query = query.ilike("location", f"%{location}%")
-
-    coaches = query.execute().data or []
-
-    return render_template(
-        "student.html",
-        coaches=coaches,
-        categories=SPORT_CATEGORIES,
-        selected_category=category,
-        selected_location=location,
-    )
-
-
-# ---------------------------------------------------------------------------
-# Admin
-# ---------------------------------------------------------------------------
+# ----- ADMIN -----------------------------------------------------
 @app.route("/admin")
-@admin_required
-def admin_dashboard():
-    pending = (
-        supabase.table("profiles")
-        .select("*")
-        .eq("role", "coach")
-        .eq("payment_status", "submitted")
-        .order("created_at", desc=True)
-        .execute()
-        .data
-        or []
-    )
-    live = (
-        supabase.table("profiles")
-        .select("*")
-        .eq("role", "coach")
-        .eq("is_verified", True)
-        .eq("payment_status", "paid")
-        .order("created_at", desc=True)
-        .execute()
-        .data
-        or []
-    )
+@role_required("admin")
+def admin():
+    coach_ids = [r.user_id for r in UserRole.query.filter_by(role="coach").all()]
+    rows = (
+        Profile.query.filter(Profile.id.in_(coach_ids))
+        .order_by(Profile.updated_at.desc())
+        .all()
+    ) if coach_ids else []
+    pending = [p for p in rows if p.payment_status == "submitted"]
+    live = [p for p in rows if p.payment_status == "paid" and p.is_verified]
+    # attach email for display
+    for p in pending + live:
+        p.email = p.user.email if p.user else ""
     return render_template("admin.html", pending=pending, live=live)
 
 
-@app.route("/admin/approve/<coach_id>", methods=["POST"])
-@admin_required
+@app.route("/admin/<coach_id>/approve", methods=["POST"])
+@role_required("admin")
 def admin_approve(coach_id):
-    supabase.table("profiles").update({
-        "is_verified": True,
-        "payment_status": "paid",
-    }).eq("id", coach_id).execute()
-    flash("Coach marked as paid and is now live for students.", "success")
-    return redirect(url_for("admin_dashboard"))
+    p = db.session.get(Profile, coach_id)
+    if not p:
+        abort(404)
+    p.is_verified = True
+    p.payment_status = "paid"
+    db.session.commit()
+    flash(f"{p.full_name or 'Coach'} is now live.", "success")
+    return redirect(url_for("admin"))
 
 
-@app.route("/admin/remove/<coach_id>", methods=["POST"])
-@admin_required
+@app.route("/admin/<coach_id>/remove", methods=["POST"])
+@role_required("admin")
 def admin_remove(coach_id):
-    supabase.table("profiles").update({
-        "is_verified": False,
-        "payment_status": "pending",
-    }).eq("id", coach_id).execute()
-    flash("Coach removed from public directory.", "success")
-    return redirect(url_for("admin_dashboard"))
+    p = db.session.get(Profile, coach_id)
+    if not p:
+        abort(404)
+    p.is_verified = False
+    p.payment_status = "pending"
+    db.session.commit()
+    flash("Coach removed from the public directory.", "info")
+    return redirect(url_for("admin"))
 
 
-# ---------------------------------------------------------------------------
-# Entrypoint
-# ---------------------------------------------------------------------------
+# ----- STUDENT ---------------------------------------------------
+@app.route("/student")
+@login_required
+def student():
+    category = request.args.get("category", "").strip()
+    location = request.args.get("location", "").strip()
+
+    coach_ids = [r.user_id for r in UserRole.query.filter_by(role="coach").all()]
+    q = Profile.query.filter(
+        Profile.id.in_(coach_ids) if coach_ids else False,
+        Profile.is_verified == True,  # noqa: E712
+        Profile.payment_status == "paid",
+    )
+    if category:
+        q = q.filter(Profile.category == category)
+    if location:
+        q = q.filter(Profile.location.ilike(f"%{location}%"))
+    coaches = q.order_by(Profile.updated_at.desc()).all()
+    return render_template(
+        "student.html",
+        coaches=coaches,
+        category=category,
+        location=location,
+    )
+
+
+# ---------------------------------------------------------------- bootstrap
+with app.app_context():
+    db.create_all()
+    seed_admin()
+
+
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(debug=True, port=int(os.environ.get("PORT", 5000)))
