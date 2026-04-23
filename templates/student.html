@@ -1,46 +1,221 @@
-{% extends "base.html" %}
-{% block title %}Find a coach{% endblock %}
-{% block content %}
-<h1>Find a coach</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find a Coach – Get My Coach Uganda</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        *{box-sizing:border-box;}
+        body{background:#080808;color:white;font-family:'DM Sans',sans-serif;}
+        .bebas{font-family:'Bebas Neue',sans-serif;}
 
-<form method="get" class="card filters">
-  <label>Sport
-    <select name="category">
-      <option value="">All sports</option>
-      {% for c in SPORT_CATEGORIES %}
-        <option value="{{ c }}" {% if c == category %}selected{% endif %}>{{ c }}</option>
-      {% endfor %}
-    </select>
-  </label>
-  <label>Location <input name="location" value="{{ location }}" placeholder="e.g. Kampala" /></label>
-  <button class="btn-primary" type="submit">Search</button>
-</form>
+        body::before{content:'';position:fixed;inset:0;
+            background-image:linear-gradient(rgba(234,179,8,.025) 1px,transparent 1px),
+                             linear-gradient(90deg,rgba(234,179,8,.025) 1px,transparent 1px);
+            background-size:60px 60px;pointer-events:none;}
 
-{% if not coaches %}
-  <div class="card empty">No verified coaches match your search yet.</div>
-{% else %}
-  <div class="grid-cards">
-    {% for c in coaches %}
-      <article class="card">
-        <div class="row">
-          {% if c.image_url %}<img src="{{ c.image_url }}" class="avatar" />
-          {% else %}<div class="avatar avatar-fallback">{{ (c.full_name or '?')[0]|upper }}</div>{% endif %}
-          <div>
-            <h3>{{ c.full_name }}</h3>
-            <p class="muted small">{{ c.category }} · {{ c.location }}</p>
-          </div>
+        /* NAV */
+        .topnav{background:rgba(8,8,8,.92);backdrop-filter:blur(20px);
+            border-bottom:1px solid #1a1a1a;position:sticky;top:0;z-index:50;}
+        .nl{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.15em;
+            padding:.5rem .875rem;border-radius:.625rem;text-decoration:none;transition:color .2s;}
+        .nl-on{background:rgba(234,179,8,.1);color:#EAB308;}
+        .nl-off{color:#555;} .nl-off:hover{color:white;}
+        .nl-red{color:#ef4444;} .nl-red:hover{color:#f87171;}
+
+        /* SPORT PILL NAV */
+        .pill-wrap{display:flex;gap:.5rem;flex-wrap:wrap;}
+        .pill{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
+            padding:.45rem 1rem;border-radius:999px;border:1px solid #2a2a2a;
+            color:#666;text-decoration:none;transition:all .2s;cursor:pointer;background:none;}
+        .pill:hover{border-color:#EAB308;color:#EAB308;}
+        .pill-active{background:rgba(234,179,8,.12);border-color:rgba(234,179,8,.4);color:#EAB308;}
+
+        /* LOCATION SELECT */
+        select{background:#0a0a0a;border:1px solid #2a2a2a;color:white;border-radius:1rem;
+            padding:.875rem 2.5rem .875rem 1.2rem;font-family:'DM Sans',sans-serif;
+            font-size:.85rem;outline:none;appearance:none;cursor:pointer;transition:border-color .2s;}
+        select:focus{border-color:#EAB308;}
+        select option{background:#111;}
+        .sel-wrap{position:relative;display:inline-block;}
+        .sel-wrap .chev{position:absolute;right:.875rem;top:50%;transform:translateY(-50%);
+            pointer-events:none;color:#555;}
+
+        /* COACH CARD */
+        .ccard{background:#111;border:1px solid #1f1f1f;border-radius:2rem;overflow:hidden;
+            transition:border-color .3s,transform .2s;}
+        .ccard:hover{border-color:rgba(234,179,8,.35);transform:translateY(-3px);}
+        .ccard-img{width:100%;height:16rem;object-fit:cover;transition:transform .5s;}
+        .ccard:hover .ccard-img{transform:scale(1.04);}
+
+        .sport-badge{display:inline-block;background:rgba(234,179,8,.12);
+            border:1px solid rgba(234,179,8,.25);color:#EAB308;
+            font-size:.6rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+            padding:.25rem .75rem;border-radius:999px;}
+
+        .btn-contact{display:flex;align-items:center;justify-content:center;gap:.5rem;
+            width:100%;background:white;color:#000;font-family:'Bebas Neue',sans-serif;
+            letter-spacing:.12em;font-size:1rem;padding:.85rem;border-radius:.875rem;
+            transition:background .2s,transform .1s;text-decoration:none;}
+        .btn-contact:hover{background:#EAB308;}
+        .btn-contact:active{transform:scale(.97);}
+
+        .filter-card{background:#111;border:1px solid #1f1f1f;border-radius:1.5rem;padding:1.5rem;}
+        .empty{grid-column:1/-1;text-align:center;padding:5rem 2rem;
+            border:1px dashed #1f1f1f;border-radius:2rem;}
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="topnav px-6 py-4">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+        <h1 class="bebas text-2xl tracking-widest">Get My <span class="text-yellow-400">Coach</span></h1>
+        <div class="flex items-center gap-2">
+            <a href="/student" class="nl nl-on">Directory</a>
+            {% if role == 'admin' %}<a href="/admin" class="nl nl-off">Admin</a>{% endif %}
+            <a href="/coach"   class="nl nl-off">My Profile</a>
+            <a href="/logout"  class="nl nl-red">Logout</a>
         </div>
-        <ul class="details">
-          <li><b>Experience:</b> {{ c.experience_years or 0 }} yrs</li>
-          <li><b>Rate:</b> UGX {{ '{:,}'.format(c.hourly_rate or 0) }}/hr</li>
-          <li><b>Phone:</b> {{ c.phone or '—' }}</li>
-          {% if c.bio %}<li class="italic">"{{ c.bio }}"</li>{% endif %}
-        </ul>
-        {% if c.phone %}
-          <a class="btn-primary w-full" href="tel:{{ c.phone }}">📞 Call coach</a>
-        {% endif %}
-      </article>
-    {% endfor %}
-  </div>
-{% endif %}
-{% endblock %}
+    </div>
+</nav>
+
+<div class="max-w-6xl mx-auto px-6 py-10 relative z-10">
+
+    <!-- HEADER -->
+    <div class="mb-10">
+        <h2 class="bebas text-5xl md:text-6xl tracking-wide leading-none mb-2">
+            Find an <span class="text-yellow-400">Expert Coach</span>
+        </h2>
+        <p class="text-neutral-500 text-sm">Browse Uganda's verified sports professionals.</p>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filter-card mb-8">
+        <!-- Sport pills — one for every category in the fixed list -->
+        <div class="mb-5">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-3">Sport Category</p>
+            <div class="pill-wrap">
+                <a href="/student{{ '?location='+selected_location if selected_location else '' }}"
+                   class="pill {{ 'pill-active' if not selected_sport }}">All Sports</a>
+                {% for s in sports %}
+                <a href="/student?sport={{ s }}{{ '&location='+selected_location if selected_location else '' }}"
+                   class="pill {{ 'pill-active' if selected_sport == s }}">{{ s }}</a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Location dropdown (only districts that have live coaches) -->
+        <div class="flex items-center gap-4 flex-wrap">
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-2">District</p>
+                <div class="sel-wrap">
+                    <select onchange="applyLocation(this.value)">
+                        <option value="">All Regions</option>
+                        {% for l in locations %}
+                        <option value="{{ l }}" {{ 'selected' if selected_location == l }}>{{ l }}</option>
+                        {% endfor %}
+                    </select>
+                    <svg class="chev w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+            </div>
+            {% if selected_sport or selected_location %}
+            <div class="mt-5">
+                <a href="/student" class="text-[10px] font-bold uppercase tracking-widest text-red-500 hover:text-red-400 transition">
+                    ✕ Reset Filters
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ACTIVE FILTER LABEL -->
+    {% if selected_sport or selected_location %}
+    <div class="flex items-center gap-2 mb-6">
+        <p class="text-xs text-neutral-500 font-bold">
+            Showing:
+            {% if selected_sport %}<span class="text-yellow-400">{{ selected_sport }}</span>{% endif %}
+            {% if selected_sport and selected_location %} in {% endif %}
+            {% if selected_location %}<span class="text-white">{{ selected_location }}</span>{% endif %}
+            — <span class="text-white">{{ coaches|length }} coach{{ 'es' if coaches|length != 1 }}</span>
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- COACH GRID -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for coach in coaches %}
+        <div class="ccard">
+            <!-- Photo -->
+            <div style="height:16rem;overflow:hidden;">
+                <img class="ccard-img"
+                     src="{{ coach.profile_pic_url or 'https://ui-avatars.com/api/?background=1a1a1a&color=EAB308&size=400&name='+(coach.full_name or 'Coach') }}"
+                     alt="{{ coach.full_name }}">
+            </div>
+
+            <!-- Body -->
+            <div class="p-7">
+                <div class="mb-3">
+                    <span class="sport-badge">{{ coach.sport_category }}</span>
+                </div>
+                <h3 class="bebas text-2xl tracking-wide leading-tight mb-1">{{ coach.full_name or coach.username }}</h3>
+                <div class="flex items-center gap-1.5 text-neutral-500 text-xs font-bold mb-4">
+                    <svg class="w-3.5 h-3.5 text-yellow-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    {{ coach.location_district or '—' }}
+                </div>
+                {% if coach.bio %}
+                <p class="text-neutral-500 text-xs leading-relaxed mb-6 italic" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                    "{{ coach.bio }}"
+                </p>
+                {% endif %}
+                <a href="tel:{{ coach.contact_number }}" class="btn-contact">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0
+                                 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1
+                                 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716
+                                 21 3 14.284 3 7V5z"/>
+                    </svg>
+                    Contact Coach
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty">
+            <svg class="w-12 h-12 text-neutral-800 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <p class="text-neutral-600 font-bold uppercase text-xs tracking-widest">
+                No coaches found for this selection.
+            </p>
+            {% if selected_sport or selected_location %}
+            <a href="/student" class="text-yellow-500 text-xs font-bold mt-3 inline-block hover:underline">
+                Clear filters →
+            </a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+function applyLocation(val) {
+    var sport = "{{ selected_sport }}";
+    var url = "/student";
+    var parts = [];
+    if (sport)  parts.push("sport="    + encodeURIComponent(sport));
+    if (val)    parts.push("location=" + encodeURIComponent(val));
+    if (parts.length) url += "?" + parts.join("&");
+    window.location.href = url;
+}
+</script>
+</body>
+</html>
