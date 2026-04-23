@@ -2,41 +2,53 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>body { background-color: #0D0D0D; color: white; }</style>
 </head>
 <body class="p-6">
-    <div class="max-w-xl mx-auto bg-[#1A1A1A] p-8 rounded-[3rem] border border-neutral-800">
-        <h2 class="text-2xl font-black mb-8 uppercase italic">My <span class="text-yellow-500">Coach Profile</span></h2>
-        
-        <form action="/coach" method="POST" enctype="multipart/form-data" class="space-y-6">
-            <div class="text-center">
-                <div class="w-32 h-32 mx-auto rounded-3xl border-4 border-yellow-500/10 overflow-hidden bg-black mb-4">
-                    <img id="preview" src="{{ profile.profile_pic_url or 'https://ui-avatars.com/api/?name=Coach' }}" class="w-full h-full object-cover">
+    <div class="max-w-xl mx-auto">
+        <nav class="flex justify-between items-center mb-10 pb-6 border-b border-neutral-800">
+            <h1 class="text-2xl font-black italic uppercase tracking-tighter">Get My <span class="text-yellow-500">Coach</span></h1>
+            <div class="flex items-center gap-6">
+                <a href="/student" class="text-[10px] font-black uppercase text-neutral-400 hover:text-white">Directory</a>
+                <a href="/coach" class="text-[10px] font-black uppercase text-white border-b-2 border-yellow-500 pb-1">My Profile</a>
+                <a href="/logout" class="text-[10px] font-black uppercase text-red-500 hover:text-red-400">Logout</a>
+            </div>
+        </nav>
+
+        <div class="bg-[#1A1A1A] p-8 rounded-[3rem] border border-neutral-800">
+            <h2 class="text-2xl font-black mb-8 uppercase italic">Update <span class="text-yellow-500">Profile</span></h2>
+            
+            <form action="/coach" method="POST" enctype="multipart/form-data" class="space-y-6">
+                <div class="text-center">
+                    <div class="w-32 h-32 mx-auto rounded-3xl border-4 border-yellow-500/10 overflow-hidden bg-black mb-4">
+                        <img id="preview" src="{{ profile.profile_pic_url or 'https://ui-avatars.com/api/?name=Coach' }}" class="w-full h-full object-cover">
+                    </div>
+                    <label class="bg-neutral-800 px-6 py-2 rounded-xl cursor-pointer text-[10px] font-black uppercase">
+                        <i data-lucide="camera" class="inline w-3 h-3 mr-2"></i> Change Photo
+                        <input type="file" name="profile_image" accept="image/*" capture="user" class="hidden" onchange="previewImg(this)">
+                    </label>
+                    <input type="hidden" name="existing_url" value="{{ profile.profile_pic_url }}">
                 </div>
-                <label class="bg-neutral-800 px-6 py-2 rounded-xl cursor-pointer text-[10px] font-black uppercase">
-                    <i data-lucide="camera" class="inline w-3 h-3 mr-2"></i> Take Photo
-                    <input type="file" name="profile_image" accept="image/*" capture="user" class="hidden" onchange="previewImg(this)">
-                </label>
-                <input type="hidden" name="existing_url" value="{{ profile.profile_pic_url }}">
-            </div>
 
-            <div class="space-y-4">
-                <input type="text" name="full_name" value="{{ profile.full_name or '' }}" placeholder="Full Name" class="w-full bg-black border border-neutral-800 p-4 rounded-xl focus:border-yellow-500 outline-none">
-                <input type="text" name="sport_category" value="{{ profile.sport_category or '' }}" placeholder="Sport (e.g. Boxing)" class="w-full bg-black border border-neutral-800 p-4 rounded-xl focus:border-yellow-500 outline-none">
-                <input type="text" name="location_district" value="{{ profile.location_district or '' }}" placeholder="District (e.g. Gulu)" class="w-full bg-black border border-neutral-800 p-4 rounded-xl focus:border-yellow-500 outline-none">
-                <input type="text" name="contact_number" value="{{ profile.contact_number or '' }}" placeholder="Phone Number" class="w-full bg-black border border-neutral-800 p-4 rounded-xl focus:border-yellow-500 outline-none">
-                <textarea name="bio" placeholder="Bio..." class="w-full bg-black border border-neutral-800 p-4 rounded-xl h-24 focus:border-yellow-500 outline-none">{{ profile.bio or '' }}</textarea>
-            </div>
+                <div class="space-y-4">
+                    <input type="text" name="full_name" value="{{ profile.full_name or '' }}" placeholder="Full Name" class="w-full bg-black border border-neutral-800 p-4 rounded-xl focus:border-yellow-500 outline-none">
+                    <input type="text" name="sport_category" value="{{ profile.sport_category or '' }}" placeholder="Sport (e.g. Boxing)" class="w-full bg-black border border-neutral-800 p-4 rounded-xl focus:border-yellow-500 outline-none">
+                    <input type="text" name="location_district" value="{{ profile.location_district or '' }}" placeholder="District (e.g. Gulu)" class="w-full bg-black border border-neutral-800 p-4 rounded-xl focus:border-yellow-500 outline-none">
+                    <input type="text" name="contact_number" value="{{ profile.contact_number or '' }}" placeholder="Phone Number" class="w-full bg-black border border-neutral-800 p-4 rounded-xl focus:border-yellow-500 outline-none">
+                    <textarea name="bio" placeholder="Bio..." class="w-full bg-black border border-neutral-800 p-4 rounded-xl h-24 focus:border-yellow-500 outline-none">{{ profile.bio or '' }}</textarea>
+                </div>
 
-            <div class="p-5 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl text-center">
-                <p class="text-[10px] text-yellow-500 font-black uppercase">Activation: 20,000 UGX</p>
-                <p class="text-[9px] text-neutral-500 uppercase mt-1">MTN: 0789268324 | Airtel: 0757307541</p>
-            </div>
+                <div class="p-5 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl text-center">
+                    <p class="text-[10px] text-yellow-500 font-black uppercase">Activation: 20,000 UGX</p>
+                    <p class="text-[9px] text-neutral-500 uppercase mt-1 tracking-widest">MTN: 0789268324 | Airtel: 0757307541</p>
+                </div>
 
-            <button class="w-full bg-yellow-500 text-black font-black py-4 rounded-2xl uppercase tracking-widest text-xs">Submit to Admin</button>
-        </form>
+                <button class="w-full bg-yellow-500 text-black font-black py-4 rounded-2xl uppercase tracking-widest text-xs shadow-xl shadow-yellow-900/10">Submit for Approval</button>
+            </form>
+        </div>
     </div>
     <script>
         function previewImg(input) {
