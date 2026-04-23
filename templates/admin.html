@@ -3,375 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Control – Get My Coach Uganda</title>
+    <title>Admin Control – Get My Coach</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        *{box-sizing:border-box;}
-        body{background:#080808;color:white;font-family:'DM Sans',sans-serif;}
-        .bebas{font-family:'Bebas Neue',sans-serif;}
-
-        body::before{content:'';position:fixed;inset:0;
-            background-image:linear-gradient(rgba(234,179,8,.025) 1px,transparent 1px),
-                             linear-gradient(90deg,rgba(234,179,8,.025) 1px,transparent 1px);
-            background-size:60px 60px;pointer-events:none;}
-
-        /* NAV */
-        .topnav{background:rgba(8,8,8,.92);backdrop-filter:blur(20px);
-            border-bottom:1px solid #1a1a1a;position:sticky;top:0;z-index:50;}
-        .nl{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.15em;
-            padding:.5rem .875rem;border-radius:.625rem;text-decoration:none;transition:color .2s;}
-        .nl-on{background:rgba(234,179,8,.1);color:#EAB308;}
-        .nl-off{color:#555;} .nl-off:hover{color:white;}
-        .nl-red{color:#ef4444;} .nl-red:hover{color:#f87171;}
-
-        /* SECTION */
-        .sec-card{background:#111;border:1px solid #1f1f1f;border-radius:2rem;overflow:hidden;}
-        .sec-hd{padding:1.25rem 1.75rem;border-bottom:1px solid #1a1a1a;
-            display:flex;align-items:center;justify-content:space-between;}
-
-        /* COACH ROW */
-        .crow{padding:1.25rem 1.75rem;border-bottom:1px solid #151515;
-            display:flex;align-items:center;gap:1rem;transition:background .15s;}
-        .crow:last-child{border-bottom:none;}
-        .crow:hover{background:rgba(255,255,255,.02);}
-        .cavatar{width:3.5rem;height:3.5rem;border-radius:.875rem;object-fit:cover;
-            border:1px solid #2a2a2a;flex-shrink:0;}
-
-        /* BADGES */
-        .badge{display:inline-block;font-size:.6rem;font-weight:700;letter-spacing:.12em;
-            text-transform:uppercase;padding:.2rem .6rem;border-radius:999px;}
-        .b-pending{background:rgba(239,68,68,.12);color:#f87171;}
-        .b-paid   {background:rgba(34,197,94,.12); color:#4ade80;}
-        .b-sport  {background:rgba(234,179,8,.1);  color:#EAB308;border:1px solid rgba(234,179,8,.2);}
-
-        /* BUTTONS */
-        .btn-green{display:flex;align-items:center;gap:.4rem;background:#16a34a;color:white;
-            font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
-            padding:.6rem 1.25rem;border-radius:.75rem;text-decoration:none;
-            transition:background .2s,transform .1s;white-space:nowrap;flex-shrink:0;}
-        .btn-green:hover{background:#15803d;} .btn-green:active{transform:scale(.97);}
-
-        .btn-red{display:flex;align-items:center;gap:.4rem;
-            background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2);
-            font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
-            padding:.55rem 1rem;border-radius:.75rem;text-decoration:none;
-            transition:background .2s,transform .1s;white-space:nowrap;flex-shrink:0;}
-        .btn-red:hover{background:rgba(239,68,68,.18);} .btn-red:active{transform:scale(.97);}
-
-        .btn-y{display:flex;align-items:center;justify-content:center;gap:.5rem;
-            background:#EAB308;color:#000;font-family:'Bebas Neue',sans-serif;
-            letter-spacing:.15em;font-size:1.1rem;padding:1rem;border-radius:1rem;
-            border:none;cursor:pointer;width:100%;transition:background .2s,transform .1s;}
-        .btn-y:hover{background:#fbbf24;} .btn-y:active{transform:scale(.98);}
-
-        /* STAT BOX */
-        .stat{background:#111;border:1px solid #1f1f1f;border-radius:1.25rem;
-            padding:1.5rem;text-align:center;}
-
-        /* EMPTY */
-        .empty-row{padding:3rem;text-align:center;}
-
-        /* PING DOT */
-        .pdot{width:.5rem;height:.5rem;background:#EAB308;border-radius:50%;
-            display:inline-block;position:relative;}
-        .pdot::after{content:'';position:absolute;inset:-.2rem;border-radius:50%;
-            background:#EAB308;opacity:.3;animation:ping 1.5s cubic-bezier(0,0,.2,1) infinite;}
-        @keyframes ping{75%,100%{transform:scale(2.5);opacity:0;}}
-
-        /* ADD COACH FORM */
-        .add-card{background:#111;border:1px solid rgba(234,179,8,.15);border-radius:2rem;overflow:hidden;}
-        .add-hd{background:rgba(234,179,8,.06);border-bottom:1px solid rgba(234,179,8,.12);
-            padding:1.25rem 1.75rem;}
-
-        input,textarea,select{
-            background:#0a0a0a;border:1px solid #2a2a2a;color:white;
-            border-radius:1rem;padding:.875rem 1.2rem;width:100%;
-            font-family:'DM Sans',sans-serif;font-size:.875rem;
-            transition:border-color .2s;outline:none;resize:none;appearance:none;
-        }
-        input:focus,textarea:focus,select:focus{border-color:#EAB308;}
-        input::placeholder,textarea::placeholder{color:#444;}
-        select option{background:#111;color:white;}
-        .sel-wrap{position:relative;}
-        .sel-wrap .chev{position:absolute;right:1rem;top:50%;transform:translateY(-50%);
-            pointer-events:none;color:#555;}
-
-        .lbl{display:block;font-size:.6rem;font-weight:700;text-transform:uppercase;
-            letter-spacing:.18em;color:#555;margin-bottom:.35rem;margin-left:.2rem;}
-
-        /* PHOTO UPLOAD in add form */
-        .add-photo-wrap{position:relative;width:7rem;height:7rem;margin:0 auto;}
-        .add-photo-wrap img{width:100%;height:100%;object-fit:cover;border-radius:1.5rem;
-            border:2px solid #2a2a2a;}
-        .cam-lbl{position:absolute;bottom:-.4rem;right:-.4rem;background:#EAB308;color:#000;
-            border-radius:.75rem;padding:.5rem;cursor:pointer;
-            box-shadow:0 4px 10px rgba(234,179,8,.3);
-            display:flex;align-items:center;justify-content:center;
-            transition:transform .15s,background .2s;}
-        .cam-lbl:hover{background:#fbbf24;transform:scale(1.1);}
-
-        /* FLASH */
-        .flash{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);
-            color:#4ade80;font-size:.7rem;font-weight:700;text-transform:uppercase;
-            letter-spacing:.12em;padding:.875rem 1rem;border-radius:.875rem;text-align:center;}
+        body { background: #080808; color: white; font-family: 'DM Sans', sans-serif; }
+        .bebas { font-family: 'Bebas Neue', sans-serif; }
+        .card { background: #111; border: 1px solid #1f1f1f; border-radius: 1.5rem; }
+        .btn-y { background: #EAB308; color: black; font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.1em; padding: 0.75rem 1.5rem; border-radius: 0.75rem; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; }
+        .btn-y:hover { background: #facc15; transform: translateY(-2px); }
+        .crow { border-bottom: 1px solid #1a1a1a; padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; }
+        .crow:last-child { border: none; }
+        input, select, textarea { background: #1a1a1a; border: 1px solid #333; color: white; padding: 0.75rem; border-radius: 0.75rem; outline: none; width: 100%; }
+        input:focus { border-color: #EAB308; }
     </style>
 </head>
-<body>
+<body class="pb-20">
 
-<!-- NAV -->
-<nav class="topnav px-6 py-4">
-    <div class="max-w-5xl mx-auto flex justify-between items-center">
-        <h1 class="bebas text-2xl tracking-widest">Get My <span class="text-yellow-400">Coach</span></h1>
-        <div class="flex items-center gap-2">
-            <a href="/student" class="nl nl-off">Directory</a>
-            <a href="/admin"   class="nl nl-on">Admin Control</a>
-            <a href="/coach"   class="nl nl-off">Coach Face</a>
-            <a href="/logout"  class="nl nl-red">Logout</a>
+<nav class="p-6 border-b border-neutral-900 mb-10">
+    <div class="max-w-6xl mx-auto flex justify-between items-center">
+        <h1 class="bebas text-2xl tracking-widest">Admin <span class="text-yellow-400">Desk</span></h1>
+        <div class="flex gap-4">
+            <a href="/student" class="text-xs font-bold uppercase text-neutral-500 hover:text-white">View Directory</a>
+            <a href="/logout" class="text-xs font-bold uppercase text-red-500">Logout</a>
         </div>
     </div>
 </nav>
 
-<div class="max-w-5xl mx-auto px-6 py-10 relative z-10 space-y-10">
-
-    <!-- HEADER + STATS -->
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-neutral-900 pb-8">
-        <div>
-            <h2 class="bebas text-5xl tracking-wide leading-none mb-2">
-                Verification <span class="text-yellow-400">Desk</span>
-            </h2>
-            <p class="text-neutral-500 text-sm">Review submissions, confirm payment, manage the live directory.</p>
-        </div>
-        <div class="flex gap-4">
-            <div class="stat">
-                <p class="bebas text-3xl text-yellow-400">{{ pending|length }}</p>
-                <p class="text-[9px] font-bold uppercase tracking-widest text-neutral-600 mt-1">Pending</p>
-            </div>
-            <div class="stat">
-                <p class="bebas text-3xl text-green-400">{{ verified|length }}</p>
-                <p class="text-[9px] font-bold uppercase tracking-widest text-neutral-600 mt-1">Live</p>
-            </div>
+<div class="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <div class="lg:col-span-1">
+        <h2 class="bebas text-3xl mb-6">Add Coach <span class="text-yellow-400">Directly</span></h2>
+        <div class="card p-6">
+            <p class="text-[10px] text-neutral-500 uppercase font-bold mb-6 tracking-widest italic">Logic: Added coaches go live instantly</p>
+            <form action="/admin/add_coach" method="POST" class="space-y-4">
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-neutral-500 block mb-1">Full Name</label>
+                    <input type="text" name="full_name" placeholder="Coach Name" required>
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-neutral-500 block mb-1">Sport</label>
+                    <select name="sport_category">
+                        {% for s in sports %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-neutral-500 block mb-1">District</label>
+                    <input type="text" name="location_district" placeholder="e.g. Kampala" required>
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-neutral-500 block mb-1">Phone</label>
+                    <input type="text" name="contact_number" placeholder="256..." required>
+                </div>
+                <button type="submit" class="btn-y w-full justify-center">Add & Publish Now</button>
+            </form>
         </div>
     </div>
 
-    <!-- FLASH MESSAGES -->
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}{% for m in messages %}
-      <div class="flash">✓ {{ m }}</div>
-      {% endfor %}{% endif %}
-    {% endwith %}
-
-    <!-- ── ADD COACH DIRECTLY (Admin Panel) ── -->
-    <div class="add-card">
-        <div class="add-hd">
-            <div class="flex items-center gap-3">
-                <svg class="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M12 4v16m8-8H4"/>
-                </svg>
-                <h3 class="bebas text-xl tracking-wide text-yellow-400">Add Coach Directly</h3>
+    <div class="lg:col-span-2">
+        <h2 class="bebas text-3xl mb-6">Verification <span class="text-yellow-400">Queue</span></h2>
+        
+        <div class="card overflow-hidden mb-8">
+            <div class="bg-yellow-500/10 p-4 border-b border-yellow-500/20">
+                <p class="text-yellow-500 text-xs font-bold uppercase tracking-widest">Pending Payment ({{ pending|length }})</p>
             </div>
-            <p class="text-[10px] text-neutral-500 font-bold uppercase tracking-widest">
-                Goes live instantly — no approval needed
-            </p>
-        </div>
-
-        <form action="/admin/add_coach" method="POST" enctype="multipart/form-data" class="p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                <!-- LEFT: photo + name + sport + location -->
-                <div class="space-y-4">
-                    <!-- Photo upload -->
-                    <div class="text-center mb-2">
-                        <div class="add-photo-wrap">
-                            <img id="add-preview"
-                                 src="https://ui-avatars.com/api/?background=1a1a1a&color=EAB308&name=New+Coach"
-                                 alt="New Coach Photo">
-                            <label class="cam-lbl" title="Upload photo">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                          d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0
-                                             015.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0013.07
-                                             7H14a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                          d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                </svg>
-                                <input type="file" name="profile_image" accept="image/*"
-                                       class="hidden" onchange="previewAdd(this)">
-                            </label>
-                        </div>
-                        <p class="text-[9px] text-neutral-600 font-bold uppercase tracking-widest mt-3">
-                            Coach Photo
-                        </p>
-                    </div>
-
-                    <div>
-                        <label class="lbl">Full Name *</label>
-                        <input type="text" name="full_name" placeholder="e.g. Nakato Sarah" required>
-                    </div>
-
-                    <div>
-                        <label class="lbl">Sport / Discipline *</label>
-                        <div class="sel-wrap">
-                            <select name="sport_category" required>
-                                <option value="" disabled selected>— Select sport —</option>
-                                {% for s in sports %}
-                                <option value="{{ s }}">{{ s }}</option>
-                                {% endfor %}
-                            </select>
-                            <svg class="chev w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                            </svg>
-                        </div>
-                    </div>
+            {% for coach in pending %}
+            <div class="crow">
+                <div>
+                    <p class="font-bold text-sm">{{ coach.full_name }}</p>
+                    <p class="text-xs text-neutral-500">{{ coach.sport_category }} • {{ coach.location_district }}</p>
                 </div>
-
-                <!-- RIGHT: location + contact + bio -->
-                <div class="space-y-4">
-                    <div>
-                        <label class="lbl">District / Location *</label>
-                        <input type="text" name="location_district" placeholder="e.g. Kampala" required>
-                    </div>
-                    <div>
-                        <label class="lbl">Phone / WhatsApp *</label>
-                        <input type="text" name="contact_number" placeholder="e.g. 0789 268 324" required>
-                    </div>
-                    <div>
-                        <label class="lbl">Bio</label>
-                        <textarea name="bio" rows="4"
-                                  placeholder="Brief coaching bio..."></textarea>
-                    </div>
-                </div>
+                <a href="/admin/mark_paid/{{ coach.id }}" class="bg-white text-black text-[10px] font-bold px-4 py-2 rounded-lg uppercase hover:bg-yellow-400 transition">
+                    Mark Paid & Go Live
+                </a>
             </div>
-
-            <div class="mt-6">
-                <button type="submit" class="btn-y">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Add Coach & Publish Immediately
-                </button>
-            </div>
-        </form>
-    </div>
-
-    <!-- ── PENDING SUBMISSIONS ── -->
-    <div>
-        <div class="flex items-center gap-2 mb-4">
-            <span class="pdot"></span>
-            <h3 class="text-xs font-bold uppercase tracking-widest text-neutral-400">
-                Awaiting Payment Confirmation
-            </h3>
-        </div>
-        <div class="sec-card">
-            {% if pending %}
-                {% for coach in pending %}
-                <div class="crow">
-                    <img class="cavatar"
-                         src="{{ coach.profile_pic_url or 'https://ui-avatars.com/api/?background=1a1a1a&color=EAB308&name='+(coach.full_name or 'Coach') }}"
-                         alt="{{ coach.full_name }}">
-
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 flex-wrap mb-1">
-                            <h4 class="bebas text-xl tracking-wide">{{ coach.full_name or '(No Name)' }}</h4>
-                            {% if coach.sport_category %}<span class="badge b-sport">{{ coach.sport_category }}</span>{% endif %}
-                            <span class="badge b-pending">Unpaid</span>
-                        </div>
-                        <div class="flex flex-wrap gap-3 text-xs text-neutral-500 font-bold">
-                            {% if coach.location_district %}<span>📍 {{ coach.location_district }}</span>{% endif %}
-                            {% if coach.contact_number   %}<span>📞 {{ coach.contact_number }}</span>{% endif %}
-                        </div>
-                        {% if coach.bio %}
-                        <p class="text-neutral-600 text-xs mt-1 italic" style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:300px;">
-                            "{{ coach.bio }}"
-                        </p>
-                        {% endif %}
-                    </div>
-
-                    <div class="flex flex-col gap-2 items-end">
-                        <a href="/admin/mark_paid/{{ coach.id }}" class="btn-green">
-                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                            </svg>
-                            Mark Paid & Go Live
-                        </a>
-                        {% if coach.contact_number %}
-                        <a href="tel:{{ coach.contact_number }}"
-                           class="text-[10px] font-bold text-neutral-600 hover:text-yellow-400 uppercase tracking-wider transition">
-                            Call Coach
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
             {% else %}
-            <div class="empty-row">
-                <svg class="w-10 h-10 text-neutral-800 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <p class="text-neutral-700 text-xs font-bold uppercase tracking-widest">No pending submissions right now.</p>
-            </div>
-            {% endif %}
+            <p class="p-10 text-center text-neutral-600 text-xs uppercase tracking-widest font-bold">No pending requests</p>
+            {% endfor %}
         </div>
-    </div>
 
-    <!-- ── LIVE COACHES ── -->
-    <div>
-        <div class="flex items-center gap-2 mb-4">
-            <span style="width:.5rem;height:.5rem;background:#4ade80;border-radius:50%;display:inline-block;"></span>
-            <h3 class="text-xs font-bold uppercase tracking-widest text-neutral-400">
-                Live on Student Directory
-            </h3>
-        </div>
-        <div class="sec-card">
-            {% if verified %}
-                {% for coach in verified %}
-                <div class="crow">
-                    <img class="cavatar"
-                         src="{{ coach.profile_pic_url or 'https://ui-avatars.com/api/?background=1a1a1a&color=4ade80&name='+(coach.full_name or 'Coach') }}"
-                         alt="{{ coach.full_name }}">
-
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 flex-wrap mb-1">
-                            <h4 class="bebas text-xl tracking-wide">{{ coach.full_name or '(No Name)' }}</h4>
-                            {% if coach.sport_category %}<span class="badge b-sport">{{ coach.sport_category }}</span>{% endif %}
-                            <span class="badge b-paid">Live</span>
-                        </div>
-                        <div class="flex flex-wrap gap-3 text-xs text-neutral-500 font-bold">
-                            {% if coach.location_district %}<span>📍 {{ coach.location_district }}</span>{% endif %}
-                            {% if coach.contact_number   %}<span>📞 {{ coach.contact_number }}</span>{% endif %}
-                        </div>
-                    </div>
-
-                    <a href="/admin/remove/{{ coach.id }}"
-                       class="btn-red"
-                       onclick="return confirm('Remove {{ coach.full_name }} from the live directory?')">
-                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                        Remove
-                    </a>
+        <h2 class="bebas text-3xl mb-6">Live <span class="text-neutral-500">Directory</span></h2>
+        <div class="card overflow-hidden">
+            {% for coach in verified %}
+            <div class="crow">
+                <div>
+                    <p class="font-bold text-sm">{{ coach.full_name }} <span class="text-[10px] text-green-500 ml-2">● LIVE</span></p>
+                    <p class="text-xs text-neutral-500">{{ coach.sport_category }} • {{ coach.location_district }}</p>
                 </div>
-                {% endfor %}
-            {% else %}
-            <div class="empty-row">
-                <p class="text-neutral-700 text-xs font-bold uppercase tracking-widest">No coaches are live yet.</p>
+                <a href="/admin/remove/{{ coach.id }}" class="text-[10px] font-bold text-red-500 uppercase hover:underline">Remove</a>
             </div>
-            {% endif %}
+            {% endfor %}
         </div>
     </div>
-
 </div>
 
-<script>
-function previewAdd(input) {
-    if (input.files && input.files[0]) {
-        var r = new FileReader();
-        r.onload = function(e) { document.getElementById('add-preview').src = e.target.result; };
-        r.readAsDataURL(input.files[0]);
-    }
-}
-</script>
 </body>
 </html>
