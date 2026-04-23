@@ -1,175 +1,406 @@
+"""
+Get My Coach Uganda — Flask backend (Render-ready, hardened)
+Black & Gold theme. Single source of truth for sport categories.
+"""
 import os
 import uuid
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-from supabase import create_client, Client
+import traceback
 from functools import wraps
+from datetime import timedelta
 
+from flask import (
+    Flask, render_template, request, redirect, url_for,
+    session, flash, jsonify
+)
+from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.security import generate_password_hash, check_password_hash
+
+# ---------------------------------------------------------------------------
+# App setup
+# ---------------------------------------------------------------------------
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "uganda_sports_secret_2026")
+app.secret_key = os.environ.get("SECRET_KEY", "change-me-in-production-please")
 
-# --- SUPABASE CONFIGURATION ---
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Render sits behind a reverse proxy — required for HTTPS + secure cookies.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
-# --- CONSTANTS ---
-SPORTS = ["Football", "Basketball", "Athletics", "Boxing", "Netball", "Rugby", "Tennis", "Swimming", "Fitness & Gym"]
+# Session cookie hardening (works on both localhost & Render)
+app.config.update(
+    SESSION_COOKIE_SECURE=os.environ.get("FLASK_ENV") != "development",
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=24),
+)
 
-# --- AUTHENTICATION HELPER ---
+# ---------------------------------------------------------------------------
+# Single source of truth — sport categories
+# ---------------------------------------------------------------------------
+SPORTS = [
+    "Athletics", "Checkers", "Chess", "Football", "Gym/Fitness",
+    "Handball", "Netball", "Scrabble", "Swimming", "Volleyball",
+]
+
+ADMIN_USERNAME = "FAROUK"
+ADMIN_PASSWORD = "FAROUK"   # change in production via env var if needed
+
+# ---------------------------------------------------------------------------
+# Lazy Supabase client (won't crash startup if env vars missing)
+# ---------------------------------------------------------------------------
+_supabase = None
+
+def get_supabase():
+    global _supabase
+    if _supabase is not None:
+        return _supabase
+    try:
+        from supabase import create_client
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
+        if not url or not key:
+            print("[WARN] SUPABASE_URL / SUPABASE_KEY not set — DB calls will fail.")
+            return None
+        _supabase = create_client(url, key)
+        return _supabase
+    except Exception as e:
+        print(f"[ERROR] Supabase init failed: {e}")
+        return None
+
+# ---------------------------------------------------------------------------
+# Auth decorators
+# ---------------------------------------------------------------------------
 def login_required(f):
     @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return redirect(url_for('login'))
+    def wrap(*args, **kwargs):
+        if "user_id" not in session:
+            flash("Please log in to continue.", "warning")
+            return redirect(url_for("login"))
         return f(*args, **kwargs)
-    return decorated_function
+    return wrap
 
-def get_db():
-    return supabase
+def admin_required(f):
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        if session.get("role") != "admin":
+            flash("Admin access only.", "danger")
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return wrap
 
-# --- ROUTES ---
-
+# ---------------------------------------------------------------------------
+# Routes — Auth
+# ---------------------------------------------------------------------------
 @app.route("/")
 def index():
-    return render_template("login.html")
+    # Always render the login page; no auto-redirect (prevents loops on Render).
+    return redirect(url_for("login"))
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form.get("email")
-        password = request.form.get("password")
-        
+        login_id = (request.form.get("login_id") or "").strip()
+        password = (request.form.get("password") or "").strip()
+
+        if not login_id or not password:
+            flash("Please enter both username/email and password.", "danger")
+            return render_template("login.html")
+
+        # Hard-coded super-admin shortcut
+        if login_id.upper() == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+            session.permanent = True
+            session["user_id"] = "admin-farouk"
+            session["username"] = "FAROUK"
+            session["role"] = "admin"
+            flash("Welcome, Admin FAROUK.", "success")
+            return redirect(url_for("admin"))
+
+        sb = get_supabase()
+        if sb is None:
+            flash("Backend not configured. Contact administrator.", "danger")
+            return render_template("login.html")
+
         try:
-            res = supabase.auth.sign_in_with_password({"email": email, "password": password})
-            session['user_id'] = res.user.id
-            
-            # Check user role from profiles table
-            user_data = supabase.table("profiles").select("role").eq("id", res.user.id).single().execute()
-            session['role'] = user_data.data.get('role', 'student')
-            
-            if session['role'] == 'admin':
-                return redirect(url_for('admin_panel'))
-            elif session['role'] == 'coach':
-                return redirect(url_for('coach_face'))
-            return redirect(url_for('student_directory'))
+            # Try username first, then email — avoids OR-filter quoting issues.
+            res = sb.table("coach_users").select("*").eq("username", login_id).limit(1).execute()
+            user = res.data[0] if res.data else None
+            if not user:
+                res = sb.table("coach_users").select("*").eq("email", login_id).limit(1).execute()
+                user = res.data[0] if res.data else None
+
+            if not user or not check_password_hash(user.get("password_hash", ""), password):
+                flash("Invalid credentials.", "danger")
+                return render_template("login.html")
+
+            session.permanent = True
+            session["user_id"] = user["id"]
+            session["username"] = user["username"]
+            session["role"] = user.get("role", "coach")
+            flash(f"Welcome back, {user['username']}.", "success")
+            return redirect(url_for("admin" if session["role"] == "admin" else "coach"))
+
         except Exception as e:
-            flash("Invalid login credentials")
+            print(f"[ERROR] Login failed: {e}")
+            traceback.print_exc()
+            flash("Login error. Please try again.", "danger")
+            return render_template("login.html")
+
     return render_template("login.html")
 
-# --- STUDENT DIRECTORY (Filtered Logic) ---
-@app.route("/student")
-@login_required
-def student_directory():
-    selected_sport = request.args.get('sport')
-    selected_location = request.args.get('location')
-    
-    # LOGIC: Only fetch coaches who are marked as 'paid'
-    query = supabase.table("profiles").select("*").eq("payment_status", "paid")
-    
-    if selected_sport:
-        query = query.eq("sport_category", selected_sport)
-    if selected_location:
-        query = query.eq("location_district", selected_location)
-        
-    coaches = query.execute().data
-    
-    # Extract unique locations from all paid profiles for the dropdown
-    all_paid = supabase.table("profiles").select("location_district").eq("payment_status", "paid").execute().data
-    locations = sorted(list(set([p['location_district'] for p in all_paid if p.get('location_district')])))
-    
-    return render_template("student.html", 
-                           coaches=coaches, 
-                           locations=locations,
-                           sports=SPORTS,
-                           selected_sport=selected_sport,
-                           selected_location=selected_location,
-                           role=session.get('role'))
+@app.route("/register", methods=["GET", "POST"])
+@app.route("/signup", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = (request.form.get("username") or "").strip()
+        email = (request.form.get("email") or "").strip().lower()
+        password = (request.form.get("password") or "").strip()
 
-# --- COACH INTERFACE (Submission Logic) ---
-@app.route("/coach")
-@login_required
-def coach_face():
-    profile = supabase.table("profiles").select("*").eq("id", session['user_id']).single().execute().data
-    return render_template("coach.html", profile=profile, sports=SPORTS)
+        if not all([username, email, password]):
+            flash("All fields are required.", "danger")
+            return render_template("login.html", show_register=True)
 
-@app.route("/coach/update", methods=["POST"])
-@login_required
-def coach_update_profile():
-    # PATH A: Coach self-submits. Logic sets status to 'submitted'
-    data = {
-        "full_name": request.form.get("full_name"),
-        "sport_category": request.form.get("sport_category"),
-        "location_district": request.form.get("location_district"),
-        "contact_number": request.form.get("contact_number"),
-        "bio": request.form.get("bio"),
-        "payment_status": "submitted"  # Becomes 'Pending' on Admin Panel
-    }
-    
-    # Handle image upload logic here if using Supabase Storage
-    
-    supabase.table("profiles").update(data).eq("id", session['user_id']).execute()
-    flash("Profile updated and submitted for admin verification.")
-    return redirect(url_for('coach_face'))
+        sb = get_supabase()
+        if sb is None:
+            flash("Backend not configured.", "danger")
+            return render_template("login.html", show_register=True)
 
-# --- ADMIN CONTROL (Management Logic) ---
-@app.route("/admin")
-@login_required
-def admin_panel():
-    if session.get('role') != 'admin':
-        return "Unauthorized", 403
-        
-    # Fetch data for the stats and lists
-    all_profiles = supabase.table("profiles").select("*").execute().data
-    pending = [p for p in all_profiles if p.get('payment_status') == 'submitted']
-    verified = [p for p in all_profiles if p.get('payment_status') == 'paid']
-    
-    return render_template("admin.html", pending=pending, verified=verified, sports=SPORTS)
+        try:
+            new_user = {
+                "id": str(uuid.uuid4()),
+                "username": username,
+                "email": email,
+                "password_hash": generate_password_hash(password),
+                "role": "coach",
+            }
+            sb.table("coach_users").insert(new_user).execute()
 
-@app.route("/admin/add_coach", methods=["POST"])
-@login_required
-def admin_add_coach():
-    if session.get('role') != 'admin': return "Unauthorized", 403
-    
-    # PATH B: Admin adds directly. Logic sets status to 'paid' instantly
-    data = {
-        "id": str(uuid.uuid4()), 
-        "full_name": request.form.get("full_name"),
-        "sport_category": request.form.get("sport_category"),
-        "location_district": request.form.get("location_district"),
-        "contact_number": request.form.get("contact_number"),
-        "bio": request.form.get("bio"),
-        "payment_status": "paid", # Direct bypass
-        "role": "coach"
-    }
-    
-    supabase.table("profiles").insert(data).execute()
-    flash("Coach added and published to directory instantly.")
-    return redirect(url_for('admin_panel'))
+            # Create the empty profile row, awaiting admin verification later.
+            sb.table("coach_profiles").insert({
+                "user_id": new_user["id"],
+                "full_name": username,
+                "is_verified": False,
+                "payment_status": "pending",
+            }).execute()
 
-@app.route("/admin/mark_paid/<coach_id>")
-@login_required
-def mark_paid(coach_id):
-    if session.get('role') != 'admin': return "Unauthorized", 403
-    
-    # Flip the status from 'submitted' to 'paid'
-    supabase.table("profiles").update({"payment_status": "paid"}).eq("id", coach_id).execute()
-    flash("Payment verified. Coach is now live!")
-    return redirect(url_for('admin_panel'))
+            flash("Account created. Please log in.", "success")
+            return redirect(url_for("login"))
+        except Exception as e:
+            print(f"[ERROR] Signup failed: {e}")
+            flash("Could not create account. Username/email may exist.", "danger")
+            return render_template("login.html", show_register=True)
 
-@app.route("/admin/remove/<coach_id>")
-@login_required
-def remove_coach(coach_id):
-    if session.get('role') != 'admin': return "Unauthorized", 403
-    
-    # Logic: Set back to 'submitted' or 'pending' to hide from directory
-    supabase.table("profiles").update({"payment_status": "pending"}).eq("id", coach_id).execute()
-    flash("Coach removed from live directory.")
-    return redirect(url_for('admin_panel'))
+    return render_template("login.html", show_register=True)
 
 @app.route("/logout")
 def logout():
     session.clear()
-    return redirect(url_for('login'))
+    flash("Logged out.", "info")
+    return redirect(url_for("login"))
 
+# ---------------------------------------------------------------------------
+# Routes — Coach
+# ---------------------------------------------------------------------------
+@app.route("/coach", methods=["GET", "POST"])
+@login_required
+def coach():
+    sb = get_supabase()
+    if sb is None:
+        flash("Backend not configured.", "danger")
+        return redirect(url_for("login"))
+
+    user_id = session["user_id"]
+
+    if request.method == "POST":
+        try:
+            data = {
+                "full_name": request.form.get("full_name", "").strip(),
+                "phone": request.form.get("phone", "").strip(),
+                "category": request.form.get("category", "").strip(),
+                "location": request.form.get("location", "").strip(),
+                "bio": request.form.get("bio", "").strip(),
+                "experience_years": int(request.form.get("experience_years") or 0),
+                "hourly_rate": int(request.form.get("hourly_rate") or 0),
+                "image_url": request.form.get("image_url", "").strip() or None,
+            }
+
+            # Existing?
+            existing = sb.table("coach_profiles").select("*").eq("user_id", user_id).execute()
+            if existing.data:
+                current = existing.data[0]
+                # If already paid+verified, keep status; otherwise mark submitted.
+                if not (current.get("is_verified") and current.get("payment_status") == "paid"):
+                    data["payment_status"] = "submitted"
+                sb.table("coach_profiles").update(data).eq("user_id", user_id).execute()
+                flash("Profile updated.", "success")
+            else:
+                data["user_id"] = user_id
+                data["payment_status"] = "submitted"
+                data["is_verified"] = False
+                sb.table("coach_profiles").insert(data).execute()
+                flash("Profile submitted to admin for approval.", "success")
+
+            return redirect(url_for("coach"))
+        except Exception as e:
+            print(f"[ERROR] Coach save: {e}")
+            flash("Could not save profile.", "danger")
+
+    # GET — load current profile
+    profile = {}
+    try:
+        res = sb.table("coach_profiles").select("*").eq("user_id", user_id).limit(1).execute()
+        if res.data:
+            profile = res.data[0]
+    except Exception as e:
+        print(f"[ERROR] Coach load: {e}")
+
+    return render_template("coach.html", profile=profile, sports=SPORTS)
+
+# ---------------------------------------------------------------------------
+# Routes — Admin
+# ---------------------------------------------------------------------------
+@app.route("/admin")
+@admin_required
+def admin():
+    sb = get_supabase()
+    pending, live = [], []
+    if sb is not None:
+        try:
+            res = sb.table("coach_profiles").select("*").execute()
+            for p in (res.data or []):
+                if p.get("is_verified") and p.get("payment_status") == "paid":
+                    live.append(p)
+                else:
+                    pending.append(p)
+        except Exception as e:
+            print(f"[ERROR] Admin load: {e}")
+            flash("Could not load profiles.", "danger")
+    return render_template("admin.html", pending=pending, live=live, sports=SPORTS)
+
+@app.route("/admin/approve/<user_id>", methods=["POST"])
+@admin_required
+def admin_approve(user_id):
+    sb = get_supabase()
+    if sb is not None:
+        try:
+            sb.table("coach_profiles").update({
+                "is_verified": True,
+                "payment_status": "paid",
+            }).eq("user_id", user_id).execute()
+            flash("Coach approved and now live.", "success")
+        except Exception as e:
+            print(f"[ERROR] Approve: {e}")
+            flash("Could not approve coach.", "danger")
+    return redirect(url_for("admin"))
+
+@app.route("/admin/remove/<user_id>", methods=["POST"])
+@admin_required
+def admin_remove(user_id):
+    sb = get_supabase()
+    if sb is not None:
+        try:
+            sb.table("coach_profiles").update({
+                "is_verified": False,
+                "payment_status": "pending",
+            }).eq("user_id", user_id).execute()
+            flash("Coach removed from public listing.", "info")
+        except Exception as e:
+            print(f"[ERROR] Remove: {e}")
+            flash("Could not remove coach.", "danger")
+    return redirect(url_for("admin"))
+
+@app.route("/admin/add_coach", methods=["POST"])
+@admin_required
+def admin_add_coach():
+    """Admin adds a coach directly — goes live instantly, no approval queue."""
+    sb = get_supabase()
+    if sb is None:
+        flash("Backend not configured.", "danger")
+        return redirect(url_for("admin"))
+
+    try:
+        new_id = str(uuid.uuid4())
+        sb.table("coach_profiles").insert({
+            "user_id": new_id,
+            "full_name": request.form.get("full_name", "").strip(),
+            "phone": request.form.get("phone", "").strip(),
+            "category": request.form.get("category", "").strip(),
+            "location": request.form.get("location", "").strip(),
+            "bio": request.form.get("bio", "").strip(),
+            "experience_years": int(request.form.get("experience_years") or 0),
+            "hourly_rate": int(request.form.get("hourly_rate") or 0),
+            "image_url": request.form.get("image_url", "").strip() or None,
+            "is_verified": True,
+            "payment_status": "paid",
+        }).execute()
+        flash("Coach added directly and now live on the student page.", "success")
+    except Exception as e:
+        print(f"[ERROR] Admin add coach: {e}")
+        flash("Could not add coach.", "danger")
+    return redirect(url_for("admin"))
+
+# ---------------------------------------------------------------------------
+# Routes — Student (public)
+# ---------------------------------------------------------------------------
+@app.route("/student")
+def student():
+    sb = get_supabase()
+    coaches = []
+    locations = []
+    if sb is not None:
+        try:
+            res = (sb.table("coach_profiles")
+                   .select("*")
+                   .eq("is_verified", True)
+                   .eq("payment_status", "paid")
+                   .execute())
+            coaches = res.data or []
+            locations = sorted({c.get("location") for c in coaches if c.get("location")})
+        except Exception as e:
+            print(f"[ERROR] Student load: {e}")
+
+    sport_filter = request.args.get("sport", "").strip()
+    location_filter = request.args.get("location", "").strip()
+
+    if sport_filter:
+        coaches = [c for c in coaches if (c.get("category") or "") == sport_filter]
+    if location_filter:
+        coaches = [c for c in coaches if (c.get("location") or "") == location_filter]
+
+    return render_template(
+        "student.html",
+        coaches=coaches,
+        sports=SPORTS,
+        locations=locations,
+        sport_filter=sport_filter,
+        location_filter=location_filter,
+    )
+
+# ---------------------------------------------------------------------------
+# Health & error handlers
+# ---------------------------------------------------------------------------
+@app.route("/health")
+def health():
+    return jsonify(status="ok", supabase=bool(get_supabase()))
+
+@app.errorhandler(404)
+def not_found(e):
+    return redirect(url_for("login"))
+
+@app.errorhandler(500)
+def server_error(e):
+    print(f"[500] {e}")
+    traceback.print_exc()
+    flash("Something went wrong. Please try again.", "danger")
+    return redirect(url_for("login"))
+
+@app.errorhandler(Exception)
+def unhandled(e):
+    print(f"[UNHANDLED] {e}")
+    traceback.print_exc()
+    flash("Unexpected error. Please try again.", "danger")
+    return redirect(url_for("login"))
+
+# ---------------------------------------------------------------------------
+# Local dev entrypoint
+# ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
