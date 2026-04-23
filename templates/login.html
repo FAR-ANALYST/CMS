@@ -1,95 +1,178 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Get My Coach Uganda — Login</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get My Coach Uganda</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #080808;
+            color: white;
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        .bebas { font-family: 'Bebas Neue', sans-serif; }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(234,179,8,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(234,179,8,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        .card {
+            background: #111111;
+            border: 1px solid #1f1f1f;
+            border-radius: 2.5rem;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.8);
+            width: 100%;
+            max-width: 22rem;
+            padding: 2.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo-badge {
+            width: 4rem; height: 4rem;
+            background: #EAB308;
+            border-radius: 1.25rem;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 1.25rem;
+            box-shadow: 0 0 40px rgba(234,179,8,0.25);
+        }
+
+        input {
+            background: #0a0a0a;
+            border: 1px solid #2a2a2a;
+            color: white;
+            border-radius: 1rem;
+            padding: 1rem 1.25rem;
+            width: 100%;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+        input:focus { border-color: #EAB308; }
+        input::placeholder { color: #444; }
+
+        .btn-login {
+            background: #EAB308;
+            color: #000;
+            font-family: 'Bebas Neue', sans-serif;
+            letter-spacing: 0.15em;
+            font-size: 1.15rem;
+            border-radius: 1rem;
+            padding: 1rem;
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            margin-top: 0.5rem;
+        }
+        .btn-login:hover  { background: #fbbf24; }
+        .btn-login:active { transform: scale(0.98); }
+
+        /* Error box — shown whenever {{ error }} is set */
+        .error-box {
+            background: rgba(239,68,68,0.1);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: #fca5a5;
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 0.875rem 1rem;
+            border-radius: 0.875rem;
+            margin-bottom: 1.25rem;
+            word-break: break-word;
+            line-height: 1.5;
+        }
+    </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-yellow-50 flex items-center justify-center p-4">
-  <div class="w-full max-w-md">
-    <div class="text-center mb-6">
-      <h1 class="text-3xl font-extrabold text-emerald-700">Get My Coach Uganda</h1>
-      <p class="text-gray-600 mt-1">Find verified sports coaches across Uganda</p>
-    </div>
+<body>
+    <div class="card">
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for cat, msg in messages %}
-        <div class="mb-3 p-3 rounded-lg text-sm
-          {% if cat == 'error' %}bg-red-100 text-red-700
-          {% elif cat == 'success' %}bg-emerald-100 text-emerald-700
-          {% else %}bg-yellow-100 text-yellow-800{% endif %}">
-          {{ msg }}
+        <!-- Logo -->
+        <div class="logo-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                 stroke-width="2.5" stroke="#000" class="w-8 h-8">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9
+                         0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5
+                         18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007
+                         0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497
+                         14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143
+                         -1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25
+                         4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25
+                         4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0
+                         4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748
+                         1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48
+                         5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003
+                         0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772
+                         6.772 0 01-3.044 0"/>
+            </svg>
         </div>
-      {% endfor %}
-    {% endwith %}
 
-    <div class="bg-white rounded-2xl shadow-lg p-6">
-      <div class="flex gap-2 mb-4">
-        <button onclick="showTab('login')" id="tab-login"
-          class="flex-1 py-2 rounded-lg font-medium bg-emerald-600 text-white">Log In</button>
-        <button onclick="showTab('signup')" id="tab-signup"
-          class="flex-1 py-2 rounded-lg font-medium bg-gray-100 text-gray-700">Sign Up</button>
-      </div>
-
-      <!-- LOGIN -->
-      <form method="post" action="{{ url_for('login') }}" id="form-login" class="space-y-3">
-        <div>
-          <label class="block text-sm font-medium mb-1">I am a…</label>
-          <select name="role" class="w-full border rounded-lg p-2">
-            <option value="student">Student / Parent</option>
-            <option value="coach">Coach</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
-        <input type="text" name="email" placeholder="Email or username" required
-          class="w-full border rounded-lg p-2" />
-        <input type="password" name="password" placeholder="Password" required
-          class="w-full border rounded-lg p-2" />
-        <button class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-lg">
-          Log In
-        </button>
-        <p class="text-xs text-gray-500 text-center pt-1">
-          New here? Click <strong>Sign Up</strong> above to create an account.
+        <h1 class="bebas text-4xl text-center tracking-widest mb-1">
+            Get My <span class="text-yellow-400">Coach</span>
+        </h1>
+        <p class="text-center text-[10px] font-bold uppercase tracking-[0.25em] text-neutral-600 mb-8">
+            Uganda's Sports Directory
         </p>
-      </form>
 
-      <!-- SIGNUP -->
-      <form method="post" action="{{ url_for('signup') }}" id="form-signup" class="space-y-3 hidden">
-        <div>
-          <label class="block text-sm font-medium mb-1">I want to register as…</label>
-          <select name="role" class="w-full border rounded-lg p-2">
-            <option value="student">Student / Parent</option>
-            <option value="coach">Coach</option>
-          </select>
+        <!-- Error message (shown if login fails or redirected with error) -->
+        {% if error %}
+        <div class="error-box">⚠ {{ error }}</div>
+        {% endif %}
+
+        <!-- Flash messages (e.g. session-expired notice) -->
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for msg in messages %}
+            <div class="error-box">{{ msg }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Login form — posts to /login -->
+        <form action="/login" method="POST" class="space-y-4">
+            <input type="text"
+                   name="login_id"
+                   placeholder="Username or Email"
+                   required
+                   autocomplete="username"
+                   value="{{ request.form.get('login_id', '') }}">
+
+            <input type="password"
+                   name="password"
+                   placeholder="Password"
+                   required
+                   autocomplete="current-password">
+
+            <button type="submit" class="btn-login">Sign In</button>
+        </form>
+
+        <div class="mt-8 pt-6 border-t border-neutral-900 text-center">
+            <p class="text-neutral-600 text-[10px] uppercase font-bold tracking-widest mb-3">
+                Want to join as a coach?
+            </p>
+            <a href="https://wa.me/256789268324"
+               target="_blank"
+               rel="noopener"
+               class="text-yellow-400 font-bold text-xs hover:text-yellow-300 uppercase tracking-widest transition">
+                Register via WhatsApp →
+            </a>
         </div>
-        <input type="text" name="full_name" placeholder="Full name" required
-          class="w-full border rounded-lg p-2" />
-        <input type="email" name="email" placeholder="Email" required
-          class="w-full border rounded-lg p-2" />
-        <input type="password" name="password" placeholder="Password (min 6 chars)" required minlength="6"
-          class="w-full border rounded-lg p-2" />
-        <button class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 rounded-lg">
-          Create Account
-        </button>
-      </form>
     </div>
-
-    <p class="text-center text-xs text-gray-500 mt-6">
-      © 2025 Get My Coach Uganda
-    </p>
-  </div>
-
-  <script>
-    function showTab(tab) {
-      const isLogin = tab === 'login';
-      document.getElementById('form-login').classList.toggle('hidden', !isLogin);
-      document.getElementById('form-signup').classList.toggle('hidden', isLogin);
-      document.getElementById('tab-login').className =
-        'flex-1 py-2 rounded-lg font-medium ' + (isLogin ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-700');
-      document.getElementById('tab-signup').className =
-        'flex-1 py-2 rounded-lg font-medium ' + (!isLogin ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-700');
-    }
-  </script>
 </body>
 </html>
