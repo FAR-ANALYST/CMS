@@ -3,59 +3,292 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find a Coach – Get My Coach Uganda</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>body { background-color: #0D0D0D; color: white; }</style>
-</head>
-<body class="p-6">
-    <div class="max-w-6xl mx-auto">
-        <nav class="flex justify-between items-center mb-10 pb-6 border-b border-neutral-800">
-            <h1 class="text-2xl font-black italic uppercase tracking-tighter">Get My <span class="text-yellow-500">Coach</span></h1>
-            <div class="flex items-center gap-6">
-                <a href="/student" class="text-[10px] font-black uppercase text-white border-b-2 border-yellow-500 pb-1">Directory</a>
-                {% if role == 'admin' %}
-                    <a href="/admin" class="text-[10px] font-black uppercase text-yellow-500 hover:text-yellow-400">Admin Control</a>
-                {% else %}
-                    <a href="/coach" class="text-[10px] font-black uppercase text-neutral-400 hover:text-white">My Profile</a>
-                {% endif %}
-                <a href="/logout" class="text-[10px] font-black uppercase text-red-500 hover:text-red-400">Logout</a>
-            </div>
-        </nav>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #080808;
+            color: white;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .bebas { font-family: 'Bebas Neue', sans-serif; }
 
-        <form method="GET" action="/student" class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-[#1A1A1A] p-6 rounded-[2rem] border border-neutral-800 mb-10">
-            <div>
-                <label class="text-[10px] font-black text-neutral-500 uppercase ml-2 mb-2 block">Sport</label>
-                <select name="sport" onchange="this.form.submit()" class="w-full bg-black border border-neutral-800 p-4 rounded-xl text-sm focus:border-yellow-500 appearance-none outline-none">
-                    <option value="">All Sports</option>
-                    {% for s in sports %}<option value="{{ s }}" {{'selected' if request.args.get('sport') == s}}>{{ s }}</option>{% endfor %}
-                </select>
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(234,179,8,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(234,179,8,0.025) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .nav {
+            background: rgba(8,8,8,0.92);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid #1a1a1a;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .coach-card {
+            background: #111;
+            border: 1px solid #1f1f1f;
+            border-radius: 2rem;
+            overflow: hidden;
+            transition: border-color 0.3s, transform 0.2s;
+            position: relative;
+            z-index: 1;
+        }
+        .coach-card:hover {
+            border-color: rgba(234,179,8,0.4);
+            transform: translateY(-3px);
+        }
+        .coach-card img {
+            width: 100%;
+            height: 16rem;
+            object-fit: cover;
+            transition: transform 0.5s;
+        }
+        .coach-card:hover img { transform: scale(1.04); }
+
+        .sport-badge {
+            display: inline-block;
+            background: rgba(234,179,8,0.12);
+            border: 1px solid rgba(234,179,8,0.25);
+            color: #EAB308;
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+        }
+
+        select {
+            background: #0a0a0a;
+            border: 1px solid #2a2a2a;
+            color: white;
+            border-radius: 1rem;
+            padding: 0.9rem 1.2rem;
+            width: 100%;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.85rem;
+            outline: none;
+            appearance: none;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        select:focus { border-color: #EAB308; }
+        option { background: #111; }
+
+        .btn-contact {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            background: white;
+            color: #000;
+            font-family: 'Bebas Neue', sans-serif;
+            letter-spacing: 0.12em;
+            font-size: 1rem;
+            padding: 0.85rem;
+            border-radius: 0.875rem;
+            transition: background 0.2s, transform 0.1s;
+            text-decoration: none;
+        }
+        .btn-contact:hover  { background: #EAB308; }
+        .btn-contact:active { transform: scale(0.97); }
+
+        .filter-box {
+            background: #111;
+            border: 1px solid #1f1f1f;
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+        }
+
+        .nav-link {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            transition: color 0.2s;
+            padding: 0.5rem 0.875rem;
+            border-radius: 0.625rem;
+            text-decoration: none;
+        }
+        .nav-link-active {
+            background: rgba(234,179,8,0.1);
+            color: #EAB308;
+        }
+        .nav-link-default {
+            color: #555;
+        }
+        .nav-link-default:hover { color: white; }
+        .nav-link-danger {
+            color: #ef4444;
+        }
+        .nav-link-danger:hover { color: #f87171; }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 5rem 2rem;
+            border: 1px dashed #1f1f1f;
+            border-radius: 2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── NAVIGATION ── -->
+    <nav class="nav px-6 py-4">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <h1 class="bebas text-2xl tracking-widest">
+                Get My <span class="text-yellow-400">Coach</span>
+            </h1>
+            <div class="flex items-center gap-2">
+                <a href="/student" class="nav-link nav-link-active">Directory</a>
+                {% if role == 'admin' %}
+                    <a href="/admin"  class="nav-link nav-link-default">Admin</a>
+                {% endif %}
+                <a href="/coach"  class="nav-link nav-link-default">My Profile</a>
+                <a href="/logout" class="nav-link nav-link-danger">Logout</a>
             </div>
-            <div>
-                <label class="text-[10px] font-black text-neutral-500 uppercase ml-2 mb-2 block">Location</label>
-                <select name="location" onchange="this.form.submit()" class="w-full bg-black border border-neutral-800 p-4 rounded-xl text-sm focus:border-yellow-500 appearance-none outline-none">
-                    <option value="">All Regions</option>
-                    {% for l in locations %}<option value="{{ l }}" {{'selected' if request.args.get('location') == l}}>{{ l }}</option>{% endfor %}
-                </select>
+        </div>
+    </nav>
+
+    <div class="max-w-6xl mx-auto px-6 py-10 relative z-10">
+
+        <!-- ── HEADER ── -->
+        <div class="mb-10">
+            <h2 class="bebas text-5xl md:text-6xl tracking-wide leading-none mb-2">
+                Find an <span class="text-yellow-400">Expert Coach</span>
+            </h2>
+            <p class="text-neutral-500 text-sm">
+                Browse Uganda's verified sports professionals — filter by sport or location.
+            </p>
+        </div>
+
+        <!-- ── FILTERS ── -->
+        <form method="GET" action="/student" class="filter-box mb-10">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-2 ml-1">
+                        Sport Category
+                    </label>
+                    <div class="relative">
+                        <select name="sport" onchange="this.form.submit()">
+                            <option value="">All Sports</option>
+                            {% for s in sports %}
+                            <option value="{{ s }}" {{ 'selected' if selected_sport == s }}>{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                        <svg class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-600 pointer-events-none"
+                             fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-2 ml-1">
+                        District / Location
+                    </label>
+                    <div class="relative">
+                        <select name="location" onchange="this.form.submit()">
+                            <option value="">All Regions</option>
+                            {% for l in locations %}
+                            <option value="{{ l }}" {{ 'selected' if selected_location == l }}>{{ l }}</option>
+                            {% endfor %}
+                        </select>
+                        <svg class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-600 pointer-events-none"
+                             fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    {% if selected_sport or selected_location %}
+                    <a href="/student"
+                       class="text-[10px] font-bold uppercase tracking-widest text-red-500 hover:text-red-400 transition whitespace-nowrap">
+                        ✕ Reset Filters
+                    </a>
+                    {% endif %}
+                </div>
             </div>
-            <div class="flex items-end pb-4 pl-4"><a href="/student" class="text-[10px] font-bold text-neutral-600 uppercase">Reset Filters</a></div>
         </form>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- ── COACH GRID ── -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for coach in coaches %}
-            <div class="bg-[#1A1A1A] rounded-[2.5rem] overflow-hidden border border-neutral-800 shadow-2xl">
-                <img src="{{ coach.profile_pic_url }}" class="w-full h-64 object-cover">
-                <div class="p-8">
-                    <span class="text-yellow-500 text-[10px] font-black uppercase tracking-widest">{{ coach.sport_category }}</span>
-                    <h3 class="text-xl font-black mt-1 mb-4 italic">{{ coach.full_name }}</h3>
-                    <div class="flex items-center gap-2 text-neutral-500 text-xs mb-6">
-                        <i data-lucide="map-pin" class="w-3 h-3 text-yellow-500"></i> {{ coach.location_district }}
-                    </div>
-                    <a href="tel:{{ coach.contact_number }}" class="block w-full bg-white text-black text-center py-4 rounded-xl font-black uppercase text-[10px]">Contact Coach</a>
+            <div class="coach-card">
+                <!-- Photo -->
+                <div class="overflow-hidden" style="height:16rem;">
+                    <img src="{{ coach.profile_pic_url or 'https://ui-avatars.com/api/?background=1a1a1a&color=EAB308&name=' + (coach.full_name or 'Coach') }}"
+                         alt="{{ coach.full_name }}">
                 </div>
+
+                <!-- Info -->
+                <div class="p-7">
+                    <div class="mb-3">
+                        <span class="sport-badge">{{ coach.sport_category }}</span>
+                    </div>
+
+                    <h3 class="bebas text-2xl tracking-wide leading-tight mb-1">
+                        {{ coach.full_name or coach.username }}
+                    </h3>
+
+                    <div class="flex items-center gap-1.5 text-neutral-500 text-xs font-bold mb-4">
+                        <svg class="w-3.5 h-3.5 text-yellow-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        {{ coach.location_district or '—' }}
+                    </div>
+
+                    {% if coach.bio %}
+                    <p class="text-neutral-500 text-xs leading-relaxed mb-6 line-clamp-2 italic">
+                        "{{ coach.bio }}"
+                    </p>
+                    {% endif %}
+
+                    <a href="tel:{{ coach.contact_number }}" class="btn-contact">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13
+                                     a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19
+                                     a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 7V5z"/>
+                        </svg>
+                        Contact Coach
+                    </a>
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <svg class="w-12 h-12 text-neutral-800 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <p class="text-neutral-600 font-bold uppercase text-xs tracking-widest">
+                    No coaches found for this category or location.
+                </p>
+                {% if selected_sport or selected_location %}
+                <a href="/student" class="text-yellow-500 text-xs font-bold mt-3 inline-block hover:underline">
+                    Clear filters to see all coaches →
+                </a>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
     </div>
-    <script>lucide.createIcons();</script>
+
 </body>
 </html>
