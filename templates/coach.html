@@ -1,369 +1,111 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coach Profile – Get My Coach Uganda</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    <style>
-        body {
-            background-color: #080808;
-            color: white;
-            font-family: 'DM Sans', sans-serif;
-        }
-        .bebas { font-family: 'Bebas Neue', sans-serif; }
-
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(234,179,8,0.025) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(234,179,8,0.025) 1px, transparent 1px);
-            background-size: 60px 60px;
-            pointer-events: none;
-        }
-
-        .nav {
-            background: rgba(8,8,8,0.92);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid #1a1a1a;
-            position: sticky;
-            top: 0;
-            z-index: 50;
-        }
-        .nav-link {
-            font-size: 0.65rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            transition: color 0.2s;
-            padding: 0.5rem 0.875rem;
-            border-radius: 0.625rem;
-            text-decoration: none;
-        }
-        .nav-link-active  { background: rgba(234,179,8,0.1); color: #EAB308; }
-        .nav-link-default { color: #555; }
-        .nav-link-default:hover { color: white; }
-        .nav-link-danger  { color: #ef4444; }
-        .nav-link-danger:hover { color: #f87171; }
-
-        .card {
-            background: #111;
-            border: 1px solid #1f1f1f;
-            border-radius: 2rem;
-        }
-
-        input, textarea {
-            background: #0a0a0a;
-            border: 1px solid #2a2a2a;
-            color: white;
-            border-radius: 1rem;
-            padding: 1rem 1.25rem;
-            width: 100%;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.9rem;
-            transition: border-color 0.2s;
-            outline: none;
-            resize: none;
-        }
-        input:focus, textarea:focus { border-color: #EAB308; }
-        input::placeholder, textarea::placeholder { color: #444; }
-
-        .btn-submit {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            width: 100%;
-            background: #EAB308;
-            color: #000;
-            font-family: 'Bebas Neue', sans-serif;
-            letter-spacing: 0.15em;
-            font-size: 1.15rem;
-            padding: 1.1rem;
-            border-radius: 1rem;
-            border: none;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-        }
-        .btn-submit:hover  { background: #fbbf24; }
-        .btn-submit:active { transform: scale(0.98); }
-
-        .status-banner {
-            border-radius: 1.25rem;
-            padding: 1rem 1.25rem;
-            display: flex;
-            align-items: center;
-            gap: 0.875rem;
-        }
-        .status-pending  { background: rgba(80,80,80,0.12);  border: 1px solid #2a2a2a; }
-        .status-submitted { background: rgba(234,179,8,0.08); border: 1px solid rgba(234,179,8,0.2); }
-        .status-paid     { background: rgba(34,197,94,0.08);  border: 1px solid rgba(34,197,94,0.2); }
-
-        .dot {
-            width: 0.625rem;
-            height: 0.625rem;
-            border-radius: 50%;
-            flex-shrink: 0;
-            position: relative;
-        }
-        .dot::after {
-            content: '';
-            position: absolute;
-            inset: -0.25rem;
-            border-radius: 50%;
-            background: inherit;
-            opacity: 0.3;
-            animation: ping 1.5s cubic-bezier(0,0,0.2,1) infinite;
-        }
-        @keyframes ping {
-            75%, 100% { transform: scale(2); opacity: 0; }
-        }
-
-        .payment-box {
-            background: rgba(234,179,8,0.04);
-            border: 1px solid rgba(234,179,8,0.12);
-            border-radius: 1.25rem;
-            padding: 1.25rem;
-            text-align: center;
-        }
-
-        .flash-msg {
-            background: rgba(34,197,94,0.08);
-            border: 1px solid rgba(34,197,94,0.2);
-            color: #4ade80;
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            padding: 0.75rem 1rem;
-            border-radius: 0.875rem;
-            text-align: center;
-        }
-
-        .label {
-            display: block;
-            font-size: 0.6rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.18em;
-            color: #555;
-            margin-bottom: 0.4rem;
-            margin-left: 0.25rem;
-        }
-
-        .photo-wrap {
-            position: relative;
-            width: 8rem;
-            height: 8rem;
-            margin: 0 auto;
-        }
-        .photo-wrap img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 1.75rem;
-            border: 3px solid #1f1f1f;
-        }
-        .camera-btn {
-            position: absolute;
-            bottom: -0.5rem;
-            right: -0.5rem;
-            background: #EAB308;
-            color: #000;
-            border-radius: 0.875rem;
-            padding: 0.55rem;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(234,179,8,0.3);
-            transition: transform 0.15s, background 0.2s;
-        }
-        .camera-btn:hover  { background: #fbbf24; transform: scale(1.1); }
-        .camera-btn:active { transform: scale(0.95); }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Coach Dashboard — Get My Coach Uganda</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="min-h-screen bg-gray-50">
+  <nav class="bg-emerald-700 text-white px-6 py-3 flex justify-between items-center shadow">
+    <h1 class="font-bold text-lg">Get My Coach Uganda — Coach</h1>
+    <a href="{{ url_for('logout') }}" class="bg-emerald-800 hover:bg-emerald-900 px-3 py-1 rounded text-sm">Log out</a>
+  </nav>
 
-    <!-- ── NAVIGATION ── -->
-    <nav class="nav px-6 py-4">
-        <div class="max-w-xl mx-auto flex justify-between items-center">
-            <h1 class="bebas text-2xl tracking-widest">
-                Get My <span class="text-yellow-400">Coach</span>
-            </h1>
-            <div class="flex items-center gap-2">
-                <a href="/student" class="nav-link nav-link-default">Directory</a>
-                {% if role == 'admin' %}
-                    <a href="/admin"  class="nav-link nav-link-default">Admin</a>
-                {% endif %}
-                <a href="/coach"  class="nav-link nav-link-active">My Profile</a>
-                <a href="/logout" class="nav-link nav-link-danger">Logout</a>
-            </div>
+  <div class="max-w-3xl mx-auto p-4 sm:p-6">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="mb-3 p-3 rounded-lg text-sm
+          {% if cat == 'error' %}bg-red-100 text-red-700
+          {% elif cat == 'success' %}bg-emerald-100 text-emerald-700
+          {% else %}bg-yellow-100 text-yellow-800{% endif %}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <!-- Status banner -->
+    {% set status = profile.payment_status or 'pending' %}
+    {% if status == 'paid' and profile.is_verified %}
+      <div class="bg-emerald-100 border-l-4 border-emerald-600 text-emerald-800 p-4 rounded mb-4">
+        ✅ <strong>Verified & Live!</strong> Students can now find your profile.
+      </div>
+    {% elif status == 'submitted' %}
+      <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 rounded mb-4">
+        ⏳ <strong>Under Review.</strong> Your profile is awaiting admin verification after payment confirmation.
+      </div>
+    {% else %}
+      <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-800 p-4 rounded mb-4">
+        📝 Complete your profile below and submit for verification.
+      </div>
+    {% endif %}
+
+    <div class="bg-white rounded-2xl shadow p-6">
+      <h2 class="text-xl font-bold mb-4">My Coach Profile</h2>
+
+      {% if profile.image_url %}
+        <div class="mb-4 flex items-center gap-3">
+          <img src="{{ profile.image_url }}" alt="Profile" class="w-20 h-20 rounded-full object-cover border-2 border-emerald-500" />
+          <span class="text-sm text-gray-500">Current photo (upload a new one to replace)</span>
         </div>
-    </nav>
+      {% endif %}
 
-    <div class="max-w-xl mx-auto px-6 py-10 relative z-10">
-
-        <!-- ── STATUS BANNER (Communication Signal) ── -->
-        {% set ps = profile.get('payment_status', 'pending') if profile else 'pending' %}
-        <div class="status-banner {{ 'status-submitted' if ps == 'submitted' else ('status-paid' if ps == 'paid' else 'status-pending') }} mb-6">
-            <div class="dot {{ 'bg-yellow-400' if ps == 'submitted' else ('bg-green-400' if ps == 'paid' else 'bg-neutral-500') }}"></div>
-            <div>
-                <p class="text-[9px] font-bold uppercase tracking-widest text-neutral-500 mb-0.5">
-                    Live Account Status
-                </p>
-                <p class="text-sm font-bold {{ status_info.color }} italic">
-                    {{ status_info.msg }}
-                </p>
-            </div>
-        </div>
-
-        <!-- ── FLASH MESSAGES ── -->
-        {% with messages = get_flashed_messages() %}
-          {% if messages %}
-            {% for msg in messages %}
-            <div class="flash-msg mb-6">✓ {{ msg }}</div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
-
-        <!-- ── PROFILE FORM ── -->
-        <div class="card p-8">
-            <h2 class="bebas text-3xl tracking-wide mb-2">
-                Coach <span class="text-yellow-400">Dashboard</span>
-            </h2>
-            <p class="text-neutral-500 text-xs mb-8">
-                Fill in your details, upload a photo, then hit <strong class="text-white">Submit to Admin</strong>.
-                Once we confirm your payment, you go live instantly.
-            </p>
-
-            {% if role == 'admin' %}
-            <div class="text-center py-6 border border-dashed border-neutral-800 rounded-2xl mb-8">
-                <p class="text-yellow-400 text-xs font-bold uppercase tracking-widest">Admin Preview Mode – Editing Disabled</p>
-            </div>
-            {% endif %}
-
-            <form action="/coach" method="POST" enctype="multipart/form-data" class="space-y-5">
-
-                <!-- Photo Upload -->
-                <div class="text-center mb-6">
-                    <div class="photo-wrap">
-                        <img id="preview"
-                             src="{{ profile.profile_pic_url or 'https://ui-avatars.com/api/?background=1a1a1a&color=EAB308&name=' + (profile.full_name or 'Coach') }}"
-                             alt="Profile Photo">
-                        <label class="camera-btn" title="Take or upload photo">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                 stroke="currentColor" class="w-5 h-5" stroke-width="2.5">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                      d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175
-                                         C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0
-                                         0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175
-                                         2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039
-                                         50.655 50.655 0 00-4.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                      d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z"/>
-                            </svg>
-                            <input type="file" name="profile_image"
-                                   accept="image/*" capture="user"
-                                   class="hidden"
-                                   onchange="previewImg(this)"
-                                   {{ 'disabled' if role == 'admin' }}>
-                        </label>
-                    </div>
-                    <p class="text-[9px] text-neutral-600 font-bold uppercase tracking-widest mt-4">
-                        Tap camera icon to take or upload photo
-                    </p>
-                    <input type="hidden" name="existing_url" value="{{ profile.profile_pic_url or '' }}">
-                </div>
-
-                <!-- Full Name -->
-                <div>
-                    <label class="label">Full Name</label>
-                    <input type="text" name="full_name"
-                           value="{{ profile.full_name or '' }}"
-                           placeholder="e.g. John Ssekabira"
-                           {{ 'disabled' if role == 'admin' }}>
-                </div>
-
-                <!-- Sport + Location -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="label">Sport</label>
-                        <input type="text" name="sport_category"
-                               value="{{ profile.sport_category or '' }}"
-                               placeholder="e.g. Boxing"
-                               {{ 'disabled' if role == 'admin' }}>
-                    </div>
-                    <div>
-                        <label class="label">District</label>
-                        <input type="text" name="location_district"
-                               value="{{ profile.location_district or '' }}"
-                               placeholder="e.g. Kampala"
-                               {{ 'disabled' if role == 'admin' }}>
-                    </div>
-                </div>
-
-                <!-- Contact -->
-                <div>
-                    <label class="label">WhatsApp / Phone Number</label>
-                    <input type="text" name="contact_number"
-                           value="{{ profile.contact_number or '' }}"
-                           placeholder="e.g. 0789 123 456"
-                           {{ 'disabled' if role == 'admin' }}>
-                </div>
-
-                <!-- Bio -->
-                <div>
-                    <label class="label">Professional Bio</label>
-                    <textarea name="bio" rows="4"
-                              placeholder="Tell students about your coaching experience, achievements, and style..."
-                              {{ 'disabled' if role == 'admin' }}>{{ profile.bio or '' }}</textarea>
-                </div>
-
-                <!-- Payment info -->
-                <div class="payment-box">
-                    <p class="text-yellow-400 bebas text-2xl tracking-wide">UGX 20,000</p>
-                    <p class="text-[9px] text-neutral-500 font-bold uppercase tracking-widest mt-1 mb-3">
-                        One-time directory listing fee
-                    </p>
-                    <div class="flex justify-center gap-6 text-[10px] font-bold uppercase tracking-widest">
-                        <span class="text-neutral-400">MTN: <span class="text-white">0789 268 324</span></span>
-                        <span class="text-neutral-400">Airtel: <span class="text-white">0757 307 541</span></span>
-                    </div>
-                    <p class="text-[9px] text-neutral-600 mt-2">Submit your profile, then send the payment. Admin confirms and you go live.</p>
-                </div>
-
-                <!-- Submit (hidden for admin) -->
-                {% if role != 'admin' %}
-                <button type="submit" class="btn-submit">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                         stroke="currentColor" class="w-5 h-5" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                              d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12
-                                 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/>
-                    </svg>
-                    Submit to Admin for Approval
-                </button>
-                {% endif %}
-
-            </form>
+      <form method="post" action="{{ url_for('coach_save') }}" enctype="multipart/form-data" class="space-y-4">
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Full Name</label>
+            <input name="full_name" value="{{ profile.full_name or '' }}" required class="w-full border rounded-lg p-2" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Phone (WhatsApp)</label>
+            <input name="phone" value="{{ profile.phone or '' }}" placeholder="+2567..." required class="w-full border rounded-lg p-2" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Sport / Category</label>
+            <select name="category" required class="w-full border rounded-lg p-2">
+              <option value="">-- Select sport --</option>
+              {% for c in categories %}
+                <option value="{{ c }}" {% if profile.category == c %}selected{% endif %}>{{ c }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Location (e.g. Kampala, Wakiso)</label>
+            <input name="location" value="{{ profile.location or '' }}" required class="w-full border rounded-lg p-2" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Years of Experience</label>
+            <input type="number" min="0" name="experience_years" value="{{ profile.experience_years or 0 }}" class="w-full border rounded-lg p-2" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Hourly Rate (UGX)</label>
+            <input type="number" min="0" name="hourly_rate" value="{{ profile.hourly_rate or 0 }}" class="w-full border rounded-lg p-2" />
+          </div>
         </div>
 
-        <p class="text-center text-neutral-800 text-[9px] font-bold uppercase tracking-[0.25em] mt-10">
-            Get My Coach Uganda © 2026
-        </p>
+        <div>
+          <label class="block text-sm font-medium mb-1">Short Bio</label>
+          <textarea name="bio" rows="4" class="w-full border rounded-lg p-2"
+            placeholder="Tell students about your coaching experience...">{{ profile.bio or '' }}</textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Profile Photo</label>
+          <input type="file" name="image" accept="image/*" class="w-full border rounded-lg p-2" />
+          <p class="text-xs text-gray-500 mt-1">PNG, JPG, JPEG or WEBP.</p>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg">
+            {% if status == 'paid' %}Update Profile{% else %}Save & Submit for Verification{% endif %}
+          </button>
+        </div>
+      </form>
+
+      <div class="mt-6 p-4 bg-gray-50 rounded-lg text-sm text-gray-700">
+        <strong>Payment instructions:</strong> Send your registration fee via Mobile Money to
+        <span class="font-mono text-emerald-700">+256 700 000 000</span>, then notify the admin.
+        Once payment is confirmed, your profile goes live for students.
+      </div>
     </div>
-
-    <script>
-        function previewImg(input) {
-            if (input.files && input.files[0]) {
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('preview').src = e.target.result;
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-    </script>
+  </div>
 </body>
 </html>
