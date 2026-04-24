@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Admin · Get My Coach{% endblock %}
+{% block content %}
+<section class="page-header">
+  <h1>👑 Admin Dashboard</h1>
+  <p class="muted">Add coaches directly (auto-live), approve pending submissions, or remove any coach.</p>
+</section>
+
+<div class="card primary-card">
+  <h2>➕ Add a coach (goes live immediately)</h2>
+  <form method="post" enctype="multipart/form-data" class="form">
+    <label>Photo
+      <input type="file" name="photo" accept="image/*" />
+    </label>
+    <div class="form-row">
+      <label>Full name *
+        <input type="text" name="full_name" required />
+      </label>
+      <label>Phone
+        <input type="text" name="phone" placeholder="+256 7XX XXX XXX" />
+      </label>
+    </div>
+    <div class="form-row">
+      <label>Sport
+        <select name="category">
+          <option value="">Select sport</option>
+          {% for c in sport_categories %}
+            <option value="{{ c }}">{{ c }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Location
+        <input type="text" name="location" placeholder="Kampala" />
+      </label>
+    </div>
+    <div class="form-row">
+      <label>Years of experience
+        <input type="number" name="experience_years" min="0" value="0" />
+      </label>
+      <label>Hourly rate (UGX)
+        <input type="number" name="hourly_rate" min="0" value="0" />
+      </label>
+    </div>
+    <label>Bio
+      <textarea name="bio" rows="3"></textarea>
+    </label>
+    <button type="submit" class="btn-primary btn-block">Add coach &amp; publish</button>
+  </form>
+</div>
+
+<section>
+  <h2>⏳ Pending approval ({{ pending|length }})</h2>
+  {% if pending %}
+    <div class="grid">
+      {% for c in pending %}
+        <article class="coach-card pending-card">
+          <div class="coach-head">
+            {% if c['image_url'] %}
+              <img src="{{ c['image_url'] }}" class="avatar" alt="" />
+            {% else %}
+              <div class="avatar avatar-fallback">{{ (c['full_name'] or '?')[0]|upper }}</div>
+            {% endif %}
+            <div>
+              <h3>{{ c['full_name'] }}</h3>
+              <span class="muted small">Status: {{ c['payment_status'] }}</span>
+            </div>
+          </div>
+          <ul class="coach-meta">
+            <li><strong>Sport:</strong> {{ c['category'] or '—' }}</li>
+            <li><strong>Location:</strong> {{ c['location'] or '—' }}</li>
+            <li><strong>Phone:</strong> {{ c['phone'] or '—' }}</li>
+            <li><strong>Rate:</strong> UGX {{ '{:,}'.format(c['hourly_rate'] or 0) }}/hr</li>
+            <li><strong>Experience:</strong> {{ c['experience_years'] or 0 }} yrs</li>
+          </ul>
+          {% if c['bio'] %}<p class="bio">"{{ c['bio'] }}"</p>{% endif %}
+          <div class="coach-actions">
+            <form method="post" action="{{ url_for('admin_approve', sid=c['id']) }}" style="flex:1">
+              <button type="submit" class="btn-primary btn-block">✓ Approve &amp; go live</button>
+            </form>
+            <form method="post" action="{{ url_for('admin_delete', sid=c['id']) }}" onsubmit="return confirm('Remove this coach?')">
+              <button type="submit" class="btn-danger btn-icon" title="Remove">🗑</button>
+            </form>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">No coaches awaiting approval.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>✅ Live coaches ({{ live|length }})</h2>
+  {% if live %}
+    <div class="grid">
+      {% for c in live %}
+        <article class="coach-card live-card">
+          <div class="coach-head">
+            {% if c['image_url'] %}
+              <img src="{{ c['image_url'] }}" class="avatar" alt="" />
+            {% else %}
+              <div class="avatar avatar-fallback">{{ (c['full_name'] or '?')[0]|upper }}</div>
+            {% endif %}
+            <div>
+              <h3>{{ c['full_name'] }}</h3>
+              {% if c['category'] %}<span class="badge">{{ c['category'] }}</span>{% endif %}
+            </div>
+          </div>
+          <ul class="coach-meta">
+            <li><strong>Location:</strong> {{ c['location'] or '—' }}</li>
+            <li><strong>Phone:</strong> {{ c['phone'] or '—' }}</li>
+            <li><strong>Rate:</strong> UGX {{ '{:,}'.format(c['hourly_rate'] or 0) }}/hr</li>
+            <li><strong>Experience:</strong> {{ c['experience_years'] or 0 }} yrs</li>
+          </ul>
+          {% if c['bio'] %}<p class="bio">"{{ c['bio'] }}"</p>{% endif %}
+          <form method="post" action="{{ url_for('admin_delete', sid=c['id']) }}" onsubmit="return confirm('Remove from directory?')">
+            <button type="submit" class="btn-danger btn-block">🗑 Remove from directory</button>
+          </form>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">No live coaches yet.</p>
+  {% endif %}
+</section>
+{% endblock %}
