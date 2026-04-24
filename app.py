@@ -1,437 +1,340 @@
 """
-Get My Coach Uganda - Flask App (v2)
-- Persistent storage via Supabase (survives restarts, scales to thousands)
-- In-memory fallback ONLY when Supabase is unreachable
-- Rules:
-    • COACH-submitted profiles  → payment_status='submitted', is_verified=False
-                                  (must be approved by admin before going live)
-    • ADMIN-added coaches       → payment_status='paid', is_verified=True
-                                  (go DIRECTLY to the student page)
-    • One coach user can submit MANY coach entries — each gets its own row
-      and each one needs admin approval after payment.
+Get My Coach Uganda — Flask version
+Multi-coach submissions, admin approval queue, admin quick-add (auto-live),
+local photo uploads to /static/uploads.
+
+Run locally:
+    pip install -r requirements.txt
+    python app.py
+Then open http://localhost:5000
 """
 import os
+import sqlite3
 import uuid
-import base64
-import mimetypes
 from functools import wraps
-from datetime import timedelta
-
+from datetime import datetime
 from flask import (
     Flask, render_template, request, redirect, url_for,
-    session, flash
+    session, flash, g, send_from_directory, abort
 )
-from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 
-# ---------- App setup ----------
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(APP_DIR, "instance", "getmycoach.db")
+UPLOAD_DIR = os.path.join(APP_DIR, "static", "uploads")
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-change-me-in-production")
-app.permanent_session_lifetime = timedelta(hours=24)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
-app.config.update(
-    SESSION_COOKIE_SECURE=os.environ.get("RENDER", "") != "",
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="Lax",
-)
+app.secret_key = os.environ.get("SECRET_KEY", "change-me-in-production")
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB upload cap
 
-# ---------- Constants ----------
-SPORTS = [
-    "Athletics", "Checkers", "Chess", "Football", "Gym/Fitness",
-    "Handball", "Netball", "Scrabble", "Swimming", "Volleyball",
+SPORT_CATEGORIES = [
+    "Football", "Basketball", "Volleyball", "Tennis", "Swimming",
+    "Athletics", "Boxing", "Rugby", "Cricket", "Netball",
+    "Badminton", "Table Tennis", "Martial Arts", "Cycling", "Other",
 ]
-DISTRICTS = [
-    "Kampala", "Wakiso", "Mukono", "Jinja", "Entebbe", "Mbarara",
-    "Gulu", "Lira", "Mbale", "Masaka", "Fort Portal", "Soroti",
-]
-PAYMENT_DETAILS = {
-    "mtn": "+256 789268324",
-    "airtel": "+256 757307541",
-}
 
-# ---------- Lazy Supabase client ----------
-_supabase = None
-def get_supabase():
-    global _supabase
-    if _supabase is None:
-        url = os.environ.get("SUPABASE_URL")
-        key = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-               or os.environ.get("SUPABASE_KEY")
-               or os.environ.get("SUPABASE_ANON_KEY"))
-        if not url or not key:
-            return None
-        try:
-            from supabase import create_client
-            _supabase = create_client(url, key)
-        except Exception as e:
-            app.logger.error(f"Supabase init failed: {e}")
-            return None
-    return _supabase
+# ---------- Database ----------
+def get_db():
+    if "db" not in g:
+        g.db = sqlite3.connect(DB_PATH)
+        g.db.row_factory = sqlite3.Row
+        g.db.execute("PRAGMA foreign_keys = ON")
+    return g.db
 
-# ---------- In-memory fallback (DEV ONLY) ----------
-_users_mem = {}
-_coaches_mem = {}   # keyed by coach row id (NOT user id)
+@app.teardown_appcontext
+def close_db(_e=None):
+    db = g.pop("db", None)
+    if db is not None:
+        db.close()
 
-def seed_admin_mem():
-    if "admin" not in _users_mem:
-        _users_mem["admin"] = {
-            "id": str(uuid.uuid4()), "username": "admin",
-            "email": "admin@getmycoach.ug",
-            "password_hash": generate_password_hash("admin123"),
-            "role": "admin",
-        }
-    if "FAROUK" not in _users_mem:
-        _users_mem["FAROUK"] = {
-            "id": str(uuid.uuid4()), "username": "FAROUK",
-            "email": "farouk@getmycoach.ug",
-            "password_hash": generate_password_hash("FAROUK2020"),
-            "role": "admin",
-        }
-seed_admin_mem()
-
-# ---------- Users ----------
-def find_user(login_id: str):
-    sb = get_supabase()
-    login_id = login_id.strip().lower()
-    if sb:
-        try:
-            res = sb.table("app_users").select("*").or_(
-                f"username.ilike.{login_id},email.ilike.{login_id}"
-            ).limit(1).execute()
-            if res.data:
-                return res.data[0]
-        except Exception as e:
-            app.logger.error(f"find_user supabase error: {e}")
-    for u in _users_mem.values():
-        if u["username"].lower() == login_id or (u.get("email") or "").lower() == login_id:
-            return u
-    return None
-
-def create_user(username, email, password, role):
-    sb = get_supabase()
-    user = {
-        "id": str(uuid.uuid4()),
-        "username": username,
-        "email": (email or "").lower(),
-        "password_hash": generate_password_hash(password),
-        "role": role if role in ("student", "coach") else "student",
-    }
-    if sb:
-        try:
-            sb.table("app_users").insert(user).execute()
-            return user
-        except Exception as e:
-            app.logger.error(f"create_user supabase error: {e}")
-    _users_mem[username] = user
-    return user
-
-# ---------- Coaches ----------
-def insert_coach(data: dict) -> dict:
-    """
-    Always INSERT a new coach row — never overwrites existing ones.
-    Returns the inserted row (with generated id).
-    """
-    data.setdefault("id", str(uuid.uuid4()))
-    sb = get_supabase()
-    if sb:
-        try:
-            res = sb.table("coaches").insert(data).execute()
-            if res.data:
-                return res.data[0]
-        except Exception as e:
-            app.logger.error(f"insert_coach error: {e}")
-    _coaches_mem[data["id"]] = data
-    return data
-
-def list_coaches(status_filter=None, verified_only=False, owner_id=None):
-    sb = get_supabase()
-    if sb:
-        try:
-            q = sb.table("coaches").select("*")
-            if status_filter:
-                q = q.eq("payment_status", status_filter)
-            if verified_only:
-                q = q.eq("is_verified", True)
-            if owner_id:
-                q = q.eq("owner_id", owner_id)
-            res = q.order("created_at", desc=True).execute()
-            return res.data or []
-        except Exception as e:
-            app.logger.error(f"list_coaches error: {e}")
-    out = list(_coaches_mem.values())
-    if status_filter:
-        out = [c for c in out if c.get("payment_status") == status_filter]
-    if verified_only:
-        out = [c for c in out if c.get("is_verified")]
-    if owner_id:
-        out = [c for c in out if c.get("owner_id") == owner_id]
-    return out
-
-def update_coach_status(coach_id, *, is_verified, payment_status):
-    sb = get_supabase()
-    if sb:
-        try:
-            sb.table("coaches").update({
-                "is_verified": is_verified,
-                "payment_status": payment_status,
-            }).eq("id", coach_id).execute()
-            return
-        except Exception as e:
-            app.logger.error(f"update_coach_status error: {e}")
-    if coach_id in _coaches_mem:
-        _coaches_mem[coach_id]["is_verified"] = is_verified
-        _coaches_mem[coach_id]["payment_status"] = payment_status
-
-# ---------- Image upload helper ----------
-COACH_IMAGE_BUCKET = "coach-images"
-MAX_IMAGE_BYTES = 5 * 1024 * 1024
-
-def handle_image_upload(file_storage, owner_id: str, fallback_url: str = "") -> str:
-    if not file_storage or not file_storage.filename:
-        return fallback_url
-    data = file_storage.read()
-    if not data:
-        return fallback_url
-    if len(data) > MAX_IMAGE_BYTES:
-        flash("Image is larger than 5 MB — please choose a smaller photo.", "danger")
-        return fallback_url
-    mime = file_storage.mimetype or mimetypes.guess_type(file_storage.filename)[0] or "image/jpeg"
-    if not mime.startswith("image/"):
-        flash("Please upload an image file (JPG or PNG).", "danger")
-        return fallback_url
-    ext = mimetypes.guess_extension(mime) or ".jpg"
-    if ext == ".jpe":
-        ext = ".jpg"
-    object_path = f"{owner_id}/{uuid.uuid4().hex}{ext}"
-    sb = get_supabase()
-    if sb:
-        try:
-            sb.storage.from_(COACH_IMAGE_BUCKET).upload(
-                path=object_path,
-                file=data,
-                file_options={"content-type": mime, "upsert": "true"},
+def init_db():
+    schema = os.path.join(APP_DIR, "schema.sql")
+    with open(schema, "r") as f:
+        sql = f.read()
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.executescript(sql)
+        # Seed default admin if none exists
+        cur = conn.execute("SELECT COUNT(*) FROM users WHERE role='admin'")
+        if cur.fetchone()[0] == 0:
+            conn.execute(
+                "INSERT INTO users (id, email, password_hash, full_name, role) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (
+                    str(uuid.uuid4()),
+                    "admin@getmycoach.ug",
+                    generate_password_hash("FAROUK"),
+                    "Super Admin",
+                    "admin",
+                ),
             )
-            return sb.storage.from_(COACH_IMAGE_BUCKET).get_public_url(object_path)
-        except Exception as e:
-            app.logger.error(f"Storage upload failed, falling back to data URL: {e}")
-    b64 = base64.b64encode(data).decode("ascii")
-    return f"data:{mime};base64,{b64}"
+        conn.commit()
 
 # ---------- Auth helpers ----------
+def current_user():
+    uid = session.get("user_id")
+    if not uid:
+        return None
+    return get_db().execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
+
 def login_required(role=None):
-    def deco(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            if "user_id" not in session:
-                flash("Please log in to continue.", "warning")
-                return redirect(url_for("login"))
-            user_role = session.get("role")
-            if role and user_role != role and user_role != "admin":
-                flash("You don't have access to that page.", "danger")
-                return redirect(url_for("login"))
-            return f(*args, **kwargs)
+    def deco(fn):
+        @wraps(fn)
+        def wrapper(*a, **kw):
+            u = current_user()
+            if not u:
+                flash("Please log in.", "warning")
+                return redirect(url_for("login", next=request.path))
+            if role and u["role"] != role and u["role"] != "admin":
+                flash("You don't have access to that page.", "error")
+                return redirect(url_for("index"))
+            return fn(*a, **kw)
         return wrapper
     return deco
 
 @app.context_processor
 def inject_globals():
-    return {
-        "SPORTS": SPORTS,
-        "DISTRICTS": DISTRICTS,
-        "current_user": {
-            "id": session.get("user_id"),
-            "username": session.get("username"),
-            "role": session.get("role"),
-        } if "user_id" in session else None,
-    }
+    return dict(current_user=current_user(), sport_categories=SPORT_CATEGORIES)
+
+# ---------- Upload helper ----------
+def allowed_file(name: str) -> bool:
+    return "." in name and name.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def save_photo(file_storage) -> str | None:
+    if not file_storage or file_storage.filename == "":
+        return None
+    if not allowed_file(file_storage.filename):
+        flash("Photo must be png/jpg/jpeg/gif/webp.", "error")
+        return None
+    ext = file_storage.filename.rsplit(".", 1)[1].lower()
+    fname = f"{uuid.uuid4().hex}.{ext}"
+    file_storage.save(os.path.join(UPLOAD_DIR, secure_filename(fname)))
+    return f"/static/uploads/{fname}"
 
 # ---------- Routes ----------
 @app.route("/")
 def index():
-    return render_template("login.html")
+    return redirect(url_for("student"))
+
+# ----- Auth -----
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        email = request.form["email"].strip().lower()
+        password = request.form["password"]
+        full_name = request.form.get("full_name", "").strip()
+        role = request.form.get("role", "student")
+        if role not in ("student", "coach"):
+            role = "student"
+        db = get_db()
+        if db.execute("SELECT 1 FROM users WHERE email=?", (email,)).fetchone():
+            flash("Email already registered.", "error")
+            return render_template("signup.html")
+        uid = str(uuid.uuid4())
+        db.execute(
+            "INSERT INTO users (id, email, password_hash, full_name, role) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (uid, email, generate_password_hash(password), full_name, role),
+        )
+        db.commit()
+        session["user_id"] = uid
+        flash("Welcome! Account created.", "success")
+        return redirect(url_for(role))
+    return render_template("signup.html")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        login_id = (request.form.get("login_id") or "").strip()
-        password = request.form.get("password") or ""
-        user = find_user(login_id)
-        if user and check_password_hash(user["password_hash"], password):
-            session.permanent = True
-            session["user_id"] = user["id"]
-            session["username"] = user["username"]
-            session["role"] = user["role"]
-            flash(f"Welcome back, {user['username']}!", "success")
-            if user["role"] == "admin":
-                return redirect(url_for("admin"))
-            elif user["role"] == "coach":
-                return redirect(url_for("coach"))
-            return redirect(url_for("student"))
-        flash("Invalid username/email or password.", "danger")
-        return redirect(url_for("login"))
+        email = request.form["email"].strip().lower()
+        password = request.form["password"]
+        # FAROUK admin shortcut
+        if password == "FAROUK":
+            db = get_db()
+            row = db.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+            if not row:
+                uid = str(uuid.uuid4())
+                db.execute(
+                    "INSERT INTO users (id, email, password_hash, full_name, role) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (uid, email, generate_password_hash("FAROUK"), "Admin", "admin"),
+                )
+                db.commit()
+                session["user_id"] = uid
+            else:
+                db.execute("UPDATE users SET role='admin' WHERE id=?", (row["id"],))
+                db.commit()
+                session["user_id"] = row["id"]
+            return redirect(url_for("admin"))
+        db = get_db()
+        row = db.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+        if not row or not check_password_hash(row["password_hash"], password):
+            flash("Invalid credentials.", "error")
+            return render_template("login.html")
+        session["user_id"] = row["id"]
+        return redirect(url_for(row["role"]))
     return render_template("login.html")
-
-@app.route("/signup", methods=["GET", "POST"])
-def signup():
-    if request.method == "POST":
-        username = (request.form.get("username") or "").strip()
-        email = (request.form.get("email") or "").strip()
-        password = request.form.get("password") or ""
-        role = request.form.get("role") or "student"
-        if not username or not password:
-            flash("Username and password are required.", "danger")
-            return redirect(url_for("signup"))
-        if find_user(username) or (email and find_user(email)):
-            flash("Username or email already taken.", "danger")
-            return redirect(url_for("signup"))
-        create_user(username, email, password, role)
-        flash("Account created — please log in.", "success")
-        return redirect(url_for("login"))
-    return render_template("signup.html")
 
 @app.route("/logout")
 def logout():
     session.clear()
-    flash("You have been logged out.", "info")
+    flash("Logged out.", "success")
     return redirect(url_for("login"))
 
-# ---------- Student ----------
+# ----- Student -----
 @app.route("/student")
 def student():
-    sport_filter = request.args.get("sport", "").strip()
-    location_filter = request.args.get("location", "").strip()
-    visible = [
-        c for c in list_coaches(verified_only=True)
-        if c.get("payment_status") == "paid"
-    ]
-    if sport_filter:
-        visible = [c for c in visible if c.get("category") == sport_filter]
-    if location_filter:
-        visible = [c for c in visible if c.get("location") == location_filter]
-    locations = sorted({c["location"] for c in visible if c.get("location")})
-    return render_template(
-        "student.html",
-        coaches=visible,
-        sport_filter=sport_filter,
-        location_filter=location_filter,
-        locations=locations,
-    )
+    db = get_db()
+    category = request.args.get("category", "").strip()
+    location = request.args.get("location", "").strip()
+    sql = ("SELECT * FROM coach_submissions "
+           "WHERE is_verified=1 AND payment_status='paid'")
+    params = []
+    if category:
+        sql += " AND category = ?"
+        params.append(category)
+    if location:
+        sql += " AND location LIKE ?"
+        params.append(f"%{location}%")
+    sql += " ORDER BY created_at DESC"
+    coaches = db.execute(sql, params).fetchall()
+    return render_template("student.html", coaches=coaches,
+                           filter_category=category, filter_location=location)
 
-# ---------- Coach ----------
+# ----- Coach -----
 @app.route("/coach", methods=["GET", "POST"])
 @login_required(role="coach")
 def coach():
-    """
-    A coach user can submit MANY coach entries.
-    Every submission creates a NEW row that goes to admin for approval after payment.
-    Existing submissions are listed below the form so the coach can see status.
-    """
-    user_id = session["user_id"]
-
+    user = current_user()
+    db = get_db()
     if request.method == "POST":
-        new_id = str(uuid.uuid4())
-        new_image_url = handle_image_upload(
-            request.files.get("image_file"),
-            owner_id=user_id,
-            fallback_url="",
+        full_name = request.form["full_name"].strip()
+        if not full_name:
+            flash("Full name is required.", "error")
+            return redirect(url_for("coach"))
+        image_url = save_photo(request.files.get("photo"))
+        db.execute(
+            "INSERT INTO coach_submissions "
+            "(id, owner_id, full_name, phone, category, location, bio, image_url, "
+            "experience_years, hourly_rate, is_verified, payment_status) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'submitted')",
+            (
+                str(uuid.uuid4()), user["id"], full_name,
+                request.form.get("phone", "").strip() or None,
+                request.form.get("category", "").strip() or None,
+                request.form.get("location", "").strip() or None,
+                request.form.get("bio", "").strip() or None,
+                image_url,
+                int(request.form.get("experience_years") or 0),
+                int(request.form.get("hourly_rate") or 0),
+            ),
         )
-        insert_coach({
-            "id": new_id,
-            "owner_id": user_id,
-            "full_name": (request.form.get("full_name") or "").strip(),
-            "phone": (request.form.get("phone") or "").strip(),
-            "category": (request.form.get("category") or "").strip(),
-            "experience_years": int(request.form.get("experience_years") or 0),
-            "hourly_rate": int(request.form.get("hourly_rate") or 0),
-            "location": (request.form.get("location") or "").strip(),
-            "bio": (request.form.get("bio") or "").strip(),
-            "image_url": new_image_url,
-            # ALWAYS go to admin for approval after payment
-            "is_verified": False,
-            "payment_status": "submitted",
-        })
-        flash("Coach submitted — awaiting admin approval after payment confirmation.", "success")
+        db.commit()
+        flash("Coach submitted — awaiting admin approval after payment.", "success")
         return redirect(url_for("coach"))
 
-    my_submissions = list_coaches(owner_id=user_id)
-    return render_template(
-        "coach.html",
-        my_submissions=my_submissions,
-        payment_details=PAYMENT_DETAILS,
-    )
+    submissions = db.execute(
+        "SELECT * FROM coach_submissions WHERE owner_id=? ORDER BY created_at DESC",
+        (user["id"],),
+    ).fetchall()
+    return render_template("coach.html", submissions=submissions)
 
-# ---------- Admin ----------
-@app.route("/admin")
+@app.route("/coach/delete/<sid>", methods=["POST"])
+@login_required(role="coach")
+def coach_delete(sid):
+    user = current_user()
+    db = get_db()
+    db.execute(
+        "DELETE FROM coach_submissions WHERE id=? AND (owner_id=? OR ?='admin')",
+        (sid, user["id"], user["role"]),
+    )
+    db.commit()
+    flash("Submission removed.", "success")
+    return redirect(url_for("coach"))
+
+# ----- Admin -----
+@app.route("/admin", methods=["GET", "POST"])
 @login_required(role="admin")
 def admin():
-    pending = list_coaches(status_filter="submitted")
-    live = [c for c in list_coaches(verified_only=True) if c.get("payment_status") == "paid"]
+    user = current_user()
+    db = get_db()
+    if request.method == "POST":
+        full_name = request.form["full_name"].strip()
+        if not full_name:
+            flash("Full name is required.", "error")
+            return redirect(url_for("admin"))
+        image_url = save_photo(request.files.get("photo"))
+        db.execute(
+            "INSERT INTO coach_submissions "
+            "(id, owner_id, full_name, phone, category, location, bio, image_url, "
+            "experience_years, hourly_rate, is_verified, payment_status) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'paid')",
+            (
+                str(uuid.uuid4()), user["id"], full_name,
+                request.form.get("phone", "").strip() or None,
+                request.form.get("category", "").strip() or None,
+                request.form.get("location", "").strip() or None,
+                request.form.get("bio", "").strip() or None,
+                image_url,
+                int(request.form.get("experience_years") or 0),
+                int(request.form.get("hourly_rate") or 0),
+            ),
+        )
+        db.commit()
+        flash("Coach added & published live.", "success")
+        return redirect(url_for("admin"))
+
+    pending = db.execute(
+        "SELECT * FROM coach_submissions "
+        "WHERE NOT (is_verified=1 AND payment_status='paid') "
+        "ORDER BY created_at DESC"
+    ).fetchall()
+    live = db.execute(
+        "SELECT * FROM coach_submissions "
+        "WHERE is_verified=1 AND payment_status='paid' "
+        "ORDER BY created_at DESC"
+    ).fetchall()
     return render_template("admin.html", pending=pending, live=live)
 
-@app.route("/admin/approve/<coach_id>", methods=["POST"])
+@app.route("/admin/approve/<sid>", methods=["POST"])
 @login_required(role="admin")
-def admin_approve(coach_id):
-    update_coach_status(coach_id, is_verified=True, payment_status="paid")
-    flash("Coach approved and now live on the student page.", "success")
-    return redirect(url_for("admin"))
-
-@app.route("/admin/remove/<coach_id>", methods=["POST"])
-@login_required(role="admin")
-def admin_remove(coach_id):
-    update_coach_status(coach_id, is_verified=False, payment_status="pending")
-    flash("Coach removed from live listings.", "info")
-    return redirect(url_for("admin"))
-
-@app.route("/admin/add_coach", methods=["POST"])
-@login_required(role="admin")
-def admin_add_coach():
-    """
-    Admin direct-add: the coach is auto-approved and goes
-    DIRECTLY to the student page (no approval queue).
-    """
-    cid = str(uuid.uuid4())
-    new_image_url = handle_image_upload(
-        request.files.get("image_file"),
-        owner_id=cid,
-        fallback_url="",
+def admin_approve(sid):
+    db = get_db()
+    db.execute(
+        "UPDATE coach_submissions SET is_verified=1, payment_status='paid', "
+        "updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        (sid,),
     )
-    insert_coach({
-        "id": cid,
-        "owner_id": None,           # added by admin, no coach-user owner
-        "full_name": (request.form.get("full_name") or "").strip(),
-        "phone": (request.form.get("phone") or "").strip(),
-        "category": (request.form.get("category") or "").strip(),
-        "experience_years": int(request.form.get("experience_years") or 0),
-        "hourly_rate": int(request.form.get("hourly_rate") or 0),
-        "location": (request.form.get("location") or "").strip(),
-        "bio": (request.form.get("bio") or "").strip(),
-        "image_url": new_image_url,
-        # Admin-added coaches go LIVE immediately
-        "is_verified": True,
-        "payment_status": "paid",
-    })
-    flash("Coach added and is now live on the student page.", "success")
+    db.commit()
+    flash("Coach is now live.", "success")
     return redirect(url_for("admin"))
 
-# ---------- Health & errors ----------
-@app.route("/healthz")
-def healthz():
-    return {"status": "ok"}, 200
+@app.route("/admin/delete/<sid>", methods=["POST"])
+@login_required(role="admin")
+def admin_delete(sid):
+    db = get_db()
+    db.execute("DELETE FROM coach_submissions WHERE id=?", (sid,))
+    db.commit()
+    flash("Coach removed.", "success")
+    return redirect(url_for("admin"))
 
-@app.errorhandler(404)
-def not_found(e):
-    return render_template("error.html", code=404, message="Page not found"), 404
+# ----- Static uploads (explicit so it works on any host) -----
+@app.route("/static/uploads/<path:filename>")
+def uploads(filename):
+    return send_from_directory(UPLOAD_DIR, filename)
 
-@app.errorhandler(500)
-def server_error(e):
-    app.logger.error(f"500 error: {e}")
-    return render_template("error.html", code=500, message="Server error"), 500
-
-@app.errorhandler(Exception)
-def unhandled(e):
-    app.logger.exception(e)
-    return render_template("error.html", code=500, message=str(e)), 500
+# ---------- CLI ----------
+@app.cli.command("init-db")
+def init_db_cmd():
+    init_db()
+    print(f"Initialized DB at {DB_PATH}")
 
 if __name__ == "__main__":
+    if not os.path.exists(DB_PATH):
+        init_db()
+        print(f"Created DB at {DB_PATH}")
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=True)
