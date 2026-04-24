@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Welcome — Get My Coach Uganda</title>
+    <style>
+        body { background: #0f0f0f; color: #d4af37; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; text-align: center; }
+        .box { background: #1a1a1a; padding: 50px; border: 2px solid #d4af37; border-radius: 20px; box-shadow: 0 0 30px rgba(212,175,55,0.2); }
+        .btn { display: block; width: 250px; padding: 15px; margin: 20px auto; text-decoration: none; font-weight: bold; border-radius: 10px; }
+        .coach { background: #d4af37; color: black; }
+        .student { background: transparent; border: 1px solid #d4af37; color: #d4af37; }
+        h1 { font-size: 2.5rem; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>🏆 GET MY COACH</h1>
+        <p>Your journey to excellence starts here.</p>
+        <a href="{{ url_for('login') }}" class="btn coach">LOGIN AS COACH</a>
+        <a href="{{ url_for('login') }}" class="btn student">SEARCH AS STUDENT</a>
+        <p style="font-size: 0.8rem; color: #666;">Admin FAROUK can login via either button.</p>
+    </div>
+</body>
+</html>
