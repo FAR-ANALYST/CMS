@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Login — Get My Coach Uganda{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block main_class %}auth-wrapper{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+  <h1>Get My Coach UG</h1>
+  <p class="subtitle">Connect with verified sports coaches across Uganda</p>
+
+  <form method="POST" action="{{ url_for('login') }}">
+    <label for="login_id">Username or Email</label>
+    <input id="login_id" name="login_id" type="text" required autofocus>
+
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" required>
+
+    <button type="submit" class="btn btn-block">Log In</button>
+  </form>
+
+  <p style="text-align:center; margin-top:1rem; color: var(--text-dim); font-size: 0.9rem;">
+    No account? <a href="{{ url_for('signup') }}">Sign up</a>
+  </p>
+  <p style="text-align:center; margin-top:0.5rem; color: var(--text-dim); font-size: 0.8rem;">
+    Default admin: <code style="color: var(--gold);">admin</code> / <code style="color: var(--gold);">admin123</code>
+  </p>
+</div>
+{% endblock %}
