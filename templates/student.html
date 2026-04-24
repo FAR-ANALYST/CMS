@@ -1,60 +1,28 @@
 {% extends "base.html" %}
-{% block title %}Find a Coach · Get My Coach Uganda{% endblock %}
 {% block content %}
-<section class="hero">
-  <h1>Find your perfect coach in Uganda</h1>
-  <p>Verified, paid-up coaches in 10 sports — ready to train you today.</p>
-</section>
-
-<form class="filters" method="get">
-  <label>
-    Sport
+<h1>Expert Sports Coaches</h1>
+<form method="GET" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; margin-bottom: 40px;">
     <select name="category">
-      <option value="">All sports</option>
-      {% for s in SPORTS %}
-        <option value="{{ s }}" {% if s == category %}selected{% endif %}>{{ s }}</option>
-      {% endfor %}
+        <option value="">All Sports</option>
+        {% for s in SPORTS %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
     </select>
-  </label>
-  <label>
-    Location
-    <input type="text" name="location" value="{{ location }}" placeholder="e.g. Kampala">
-  </label>
-  <button type="submit" class="btn-primary">Search</button>
-  {% if category or location %}
-    <a class="btn-link" href="{{ url_for('index') }}">Clear</a>
-  {% endif %}
+    <input type="text" name="location" placeholder="Search by City or Location...">
+    <button type="submit" class="btn-primary">Filter Coaches</button>
 </form>
 
-{% if not coaches %}
-  <p class="empty">No coaches found. Try a different filter.</p>
-{% else %}
-  <div class="grid">
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px;">
     {% for c in coaches %}
-      <article class="card">
+    <div class="card">
         {% if c['image_url'] %}
-          <img class="avatar" src="{{ c['image_url'] }}" alt="{{ c['full_name'] }}">
+            <img src="{{ c['image_url'] }}" class="avatar">
         {% else %}
-          <div class="avatar fallback">{{ (c['full_name'] or '?')[:1] }}</div>
+            <div class="avatar" style="background:#222; display:flex; align-items:center; justify-content:center; color:var(--gold);">NO IMAGE</div>
         {% endif %}
         <h3>{{ c['full_name'] }}</h3>
-        <p class="meta">
-          <span class="badge">{{ c['category'] or 'Coach' }}</span>
-          {% if c['location'] %}<span>📍 {{ c['location'] }}</span>{% endif %}
-        </p>
-        {% if c['experience_years'] %}<p>🎯 {{ c['experience_years'] }} yrs experience</p>{% endif %}
-        {% if c['hourly_rate'] %}<p class="price">UGX {{ '{:,}'.format(c['hourly_rate']) }} / hr</p>{% endif %}
-        {% if c['bio'] %}<p class="bio">{{ c['bio'] }}</p>{% endif %}
-
-        {% if c['phone'] %}
-          <div class="contact-actions">
-            <a class="btn-primary" href="tel:{{ c['phone'] }}">📞 Call</a>
-            <a class="btn-secondary" href="https://wa.me/{{ c['phone']|replace('+','')|replace(' ','') }}" target="_blank" rel="noopener">💬 WhatsApp</a>
-            <a class="btn-secondary" href="sms:{{ c['phone'] }}">✉️ SMS</a>
-          </div>
-        {% endif %}
-      </article>
+        <p style="color: var(--gold); font-weight: bold; margin-bottom: 5px;">{{ c['category'] }} | {{ c['location'] }}</p>
+        <p style="font-size: 0.9rem; line-height: 1.5; color: #bbb; height: 4.5em; overflow: hidden;">{{ c['bio'] }}</p>
+        <a href="tel:{{ c['phone'] }}" class="btn-primary" style="width: 100%; text-align: center; margin-top: 15px;">Contact Coach</a>
+    </div>
     {% endfor %}
-  </div>
-{% endif %}
+</div>
 {% endblock %}
