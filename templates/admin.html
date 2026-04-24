@@ -1,103 +1,79 @@
 {% extends "base.html" %}
-{% block title %}Admin — GetMyCoach{% endblock %}
+{% block title %}Admin · Get My Coach Uganda{% endblock %}
 {% block content %}
-<div class="card">
-  <h2>⚡ Quick add coach (publishes immediately)</h2>
-  <form method="post" enctype="multipart/form-data">
-    <div class="row">
-      <div><label>Full name *</label><input name="full_name" required /></div>
-      <div><label>Phone</label><input name="phone" /></div>
-    </div>
-    <div class="row">
-      <div>
-        <label>Sport</label>
-        <select name="category">
-          <option value="">Select…</option>
-          {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
-        </select>
-      </div>
-      <div><label>Location</label><input name="location" placeholder="e.g. Jinja" /></div>
-    </div>
-    <div class="row">
-      <div><label>Experience (years)</label><input name="experience_years" type="number" min="0" value="0" /></div>
-      <div><label>Hourly rate (UGX)</label><input name="hourly_rate" type="number" min="0" step="1000" value="0" /></div>
-    </div>
-    <label>Bio</label><textarea name="bio"></textarea>
-    <label>Photo</label><input type="file" name="image" accept="image/*" />
-    <button class="btn btn-primary" type="submit">Add coach (live)</button>
+<h1>Admin Dashboard</h1>
+
+<section class="panel">
+  <h2>➕ Quick add — goes live immediately</h2>
+  <form method="post" action="{{ url_for('admin_add') }}" enctype="multipart/form-data" class="form-grid">
+    <label>Full name<input name="full_name" required></label>
+    <label>Phone<input name="phone" placeholder="+256..."></label>
+    <label>Sport
+      <select name="category" required>
+        <option value="">— choose sport —</option>
+        {% for s in SPORTS %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Location<input name="location"></label>
+    <label>Experience (yrs)<input name="experience_years" type="number" min="0" value="0"></label>
+    <label>Rate (UGX/hr)<input name="hourly_rate" type="number" min="0" value="0"></label>
+    <label class="full">Bio<textarea name="bio" rows="2"></textarea></label>
+    <label class="full">Photo<input name="image" type="file" accept="image/*"></label>
+    <button class="btn-primary" type="submit">Add coach (live now)</button>
   </form>
-</div>
+</section>
 
-<div class="card">
-  <div class="section-title">
-    <h2>🕒 Pending approvals</h2>
-    <span class="muted">{{ pending|length }} waiting</span>
-  </div>
-
-  {% if pending|length == 0 %}
-    <p class="muted">Nothing pending. 🎉</p>
+<section class="panel">
+  <h2>⏳ Pending approval ({{ pending|length }})</h2>
+  {% if not pending %}
+    <p class="empty">No pending submissions.</p>
   {% else %}
-    <div class="grid cols-2">
-      {% for s in pending %}
-        <div class="coach-card">
-          <div class="photo">
-            {% if s['image_url'] %}<img src="{{ s['image_url'] }}" alt="{{ s['full_name'] }}" />
-            {% else %}{{ (s['full_name'] or '?')[0]|upper }}{% endif %}
-          </div>
-          <div class="body">
-            <div class="name">{{ s['full_name'] }}</div>
-            <span class="badge badge-warning">{{ s['payment_status']|title }}</span>
-            <div class="meta">{{ s['category'] or '—' }} · {{ s['location'] or '—' }}</div>
-            {% if s['phone'] %}<div class="meta">📞 {{ s['phone'] }}</div>{% endif %}
-            {% if s['bio'] %}<div class="bio">{{ s['bio'] }}</div>{% endif %}
-          </div>
-          <div class="footer">
-            <form method="post" action="{{ url_for('admin_approve', sub_id=s['id']) }}">
-              <button class="btn btn-sm btn-success" type="submit">✓ Approve</button>
+    <div class="grid">
+      {% for c in pending %}
+        <article class="card">
+          {% if c['image_url'] %}<img class="avatar" src="{{ c['image_url'] }}" alt="">{% else %}<div class="avatar fallback">{{ (c['full_name'] or '?')[:1] }}</div>{% endif %}
+          <h3>{{ c['full_name'] }}</h3>
+          <p class="meta"><span class="badge">{{ c['category'] or '—' }}</span> {% if c['location'] %}<span>📍 {{ c['location'] }}</span>{% endif %}</p>
+          <p>📞 {{ c['phone'] or '—' }}</p>
+          <p class="muted small">Status: {{ c['payment_status'] }}</p>
+          {% if c['bio'] %}<p class="bio">{{ c['bio'] }}</p>{% endif %}
+          <div class="row-actions">
+            <form method="post" action="{{ url_for('admin_approve', sub_id=c['id']) }}" style="display:inline">
+              <button class="btn-primary" type="submit">✅ Mark paid & live</button>
             </form>
-            <form method="post" action="{{ url_for('admin_delete', sub_id=s['id']) }}"
-                  onsubmit="return confirm('Delete this submission?')">
-              <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+            <form method="post" action="{{ url_for('admin_delete', sub_id=c['id']) }}" onsubmit="return confirm('Delete?');" style="display:inline">
+              <button class="btn-danger" type="submit">Delete</button>
             </form>
           </div>
-        </div>
+        </article>
       {% endfor %}
     </div>
   {% endif %}
-</div>
+</section>
 
-<div class="card">
-  <div class="section-title">
-    <h2>✅ Live coaches</h2>
-    <span class="muted">{{ live|length }} live</span>
-  </div>
-
-  {% if live|length == 0 %}
-    <p class="muted">No live coaches yet.</p>
+<section class="panel">
+  <h2>✅ Live coaches ({{ live|length }})</h2>
+  {% if not live %}
+    <p class="empty">No live coaches yet.</p>
   {% else %}
-    <div class="grid cols-3">
-      {% for s in live %}
-        <div class="coach-card">
-          <div class="photo">
-            {% if s['image_url'] %}<img src="{{ s['image_url'] }}" alt="{{ s['full_name'] }}" />
-            {% else %}{{ (s['full_name'] or '?')[0]|upper }}{% endif %}
-          </div>
-          <div class="body">
-            <div class="name">{{ s['full_name'] }}</div>
-            <span class="badge badge-success">Live</span>
-            <div class="meta">{{ s['category'] or '—' }} · {{ s['location'] or '—' }}</div>
-            {% if s['phone'] %}<div class="meta">📞 {{ s['phone'] }}</div>{% endif %}
-          </div>
-          <div class="footer">
-            {% if s['hourly_rate'] %}<span class="rate">UGX {{ '{:,}'.format(s['hourly_rate']) }}/hr</span>{% endif %}
-            <form method="post" action="{{ url_for('admin_delete', sub_id=s['id']) }}"
-                  onsubmit="return confirm('Remove this coach?')">
-              <button class="btn btn-sm btn-danger" type="submit">Remove</button>
+    <div class="grid">
+      {% for c in live %}
+        <article class="card">
+          {% if c['image_url'] %}<img class="avatar" src="{{ c['image_url'] }}" alt="">{% else %}<div class="avatar fallback">{{ (c['full_name'] or '?')[:1] }}</div>{% endif %}
+          <h3>{{ c['full_name'] }}</h3>
+          <p class="meta"><span class="badge">{{ c['category'] or '—' }}</span> {% if c['location'] %}<span>📍 {{ c['location'] }}</span>{% endif %}</p>
+          <p>📞 {{ c['phone'] or '—' }}</p>
+          <div class="row-actions">
+            <form method="post" action="{{ url_for('admin_unapprove', sub_id=c['id']) }}" style="display:inline">
+              <button class="btn-secondary" type="submit">Unpublish</button>
+            </form>
+            <form method="post" action="{{ url_for('admin_delete', sub_id=c['id']) }}" onsubmit="return confirm('Delete?');" style="display:inline">
+              <button class="btn-danger" type="submit">Delete</button>
             </form>
           </div>
-        </div>
+        </article>
       {% endfor %}
     </div>
   {% endif %}
-</div>
+</section>
 {% endblock %}

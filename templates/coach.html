@@ -1,95 +1,75 @@
 {% extends "base.html" %}
-{% block title %}Coach dashboard — GetMyCoach{% endblock %}
+{% block title %}My Coach Profile · Get My Coach Uganda{% endblock %}
 {% block content %}
-<div class="card">
+<h1>My Coach Dashboard</h1>
+<p class="muted">Submit a new profile or edit existing ones. New profiles need admin approval before going live.</p>
+
+<section class="panel">
   <h2>💳 Payment instructions</h2>
-  <p>Submit a coach profile, then pay <strong>UGX 20,000</strong> via MTN MoMo to <strong>0772 000 000</strong>
-  (reference: your full name). After payment, an admin will verify and publish your profile.</p>
-</div>
+  <p>To activate a profile, send <strong>UGX 20,000</strong> via Mobile Money to <strong>+256 700 000 000</strong> (MTN). Include your full name as reference. Admin will mark you live within 24 hours.</p>
+</section>
 
-<div class="card">
-  <h2>Submit a new coach profile</h2>
-  <form method="post" enctype="multipart/form-data">
-    <div class="row">
-      <div>
-        <label>Full name *</label>
-        <input name="full_name" required />
-      </div>
-      <div>
-        <label>Phone (e.g. +256...)</label>
-        <input name="phone" />
-      </div>
-    </div>
-    <div class="row">
-      <div>
-        <label>Sport category</label>
-        <select name="category">
-          <option value="">Select…</option>
-          {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
-        </select>
-      </div>
-      <div>
-        <label>Location (Town / District)</label>
-        <input name="location" placeholder="e.g. Kampala" />
-      </div>
-    </div>
-    <div class="row">
-      <div>
-        <label>Years of experience</label>
-        <input name="experience_years" type="number" min="0" max="80" value="0" />
-      </div>
-      <div>
-        <label>Hourly rate (UGX)</label>
-        <input name="hourly_rate" type="number" min="0" step="1000" value="0" />
-      </div>
-    </div>
-    <label>Short bio</label>
-    <textarea name="bio" placeholder="Tell students about your experience, achievements, and style…"></textarea>
-
-    <label>Profile photo (optional)</label>
-    <input type="file" name="image" accept="image/*" />
-
-    <button class="btn btn-primary" type="submit">Submit profile</button>
+<section class="panel">
+  <h2>➕ Submit a new profile</h2>
+  <form method="post" action="{{ url_for('coach_submit') }}" enctype="multipart/form-data" class="form-grid">
+    <label>Full name<input name="full_name" required></label>
+    <label>Phone (with country code)<input name="phone" placeholder="+256..."></label>
+    <label>Sport
+      <select name="category" required>
+        <option value="">— choose sport —</option>
+        {% for s in SPORTS %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>Location<input name="location" placeholder="e.g. Kampala"></label>
+    <label>Years of experience<input name="experience_years" type="number" min="0" value="0"></label>
+    <label>Hourly rate (UGX)<input name="hourly_rate" type="number" min="0" value="0"></label>
+    <label class="full">Bio<textarea name="bio" rows="3" placeholder="Tell students about your training style..."></textarea></label>
+    <label class="full">Photo<input name="image" type="file" accept="image/*"></label>
+    <button class="btn-primary" type="submit">Submit for approval</button>
   </form>
-</div>
+</section>
 
-<div class="card">
-  <div class="section-title">
-    <h2>My submissions</h2>
-    <span class="muted">{{ submissions|length }} total</span>
-  </div>
-
-  {% if submissions|length == 0 %}
-    <p class="muted">No submissions yet. Add one above.</p>
+<section class="panel">
+  <h2>📋 My submissions</h2>
+  {% if not submissions %}
+    <p class="empty">No submissions yet.</p>
   {% else %}
-    <div class="grid cols-2">
-      {% for s in submissions %}
-        <div class="coach-card">
-          <div class="body">
-            <div class="name">{{ s['full_name'] }}</div>
-            {% if s['is_verified'] and s['payment_status'] == 'paid' %}
-              <span class="badge badge-success">✓ Live</span>
-            {% elif s['payment_status'] == 'submitted' %}
-              <span class="badge badge-warning">Awaiting verification</span>
-            {% else %}
-              <span class="badge badge-muted">Pending payment</span>
-            {% endif %}
-            <div class="meta">
-              {{ s['category'] or '—' }} · {{ s['location'] or '—' }}
-              {% if s['hourly_rate'] %} · UGX {{ '{:,}'.format(s['hourly_rate']) }}/hr{% endif %}
-            </div>
-            {% if s['bio'] %}<div class="bio">{{ s['bio'] }}</div>{% endif %}
+    {% for s in submissions %}
+      <details class="sub-row">
+        <summary>
+          <strong>{{ s['full_name'] }}</strong> · {{ s['category'] or '—' }}
+          {% if s['is_verified'] and s['payment_status'] == 'paid' %}
+            <span class="status status-live">✅ Live</span>
+          {% elif s['payment_status'] == 'submitted' %}
+            <span class="status status-pending">⏳ Awaiting verification</span>
+          {% else %}
+            <span class="status status-draft">📝 Pending payment</span>
+          {% endif %}
+        </summary>
+        <form method="post" action="{{ url_for('coach_edit', sub_id=s['id']) }}" enctype="multipart/form-data" class="form-grid">
+          <label>Full name<input name="full_name" value="{{ s['full_name'] }}" required></label>
+          <label>Phone<input name="phone" value="{{ s['phone'] or '' }}"></label>
+          <label>Sport
+            <select name="category" required>
+              {% for sp in SPORTS %}
+                <option value="{{ sp }}" {% if sp == s['category'] %}selected{% endif %}>{{ sp }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Location<input name="location" value="{{ s['location'] or '' }}"></label>
+          <label>Experience (yrs)<input name="experience_years" type="number" min="0" value="{{ s['experience_years'] or 0 }}"></label>
+          <label>Rate (UGX/hr)<input name="hourly_rate" type="number" min="0" value="{{ s['hourly_rate'] or 0 }}"></label>
+          <label class="full">Bio<textarea name="bio" rows="3">{{ s['bio'] or '' }}</textarea></label>
+          <label class="full">Replace photo<input name="image" type="file" accept="image/*"></label>
+          <div class="row-actions">
+            <button class="btn-primary" type="submit">Save changes</button>
           </div>
-          <div class="footer">
-            <span class="muted">Submitted {{ s['created_at'][:10] }}</span>
-            <form method="post" action="{{ url_for('coach_delete', sub_id=s['id']) }}"
-                  onsubmit="return confirm('Delete this submission?')">
-              <button class="btn btn-sm btn-danger" type="submit">Delete</button>
-            </form>
-          </div>
-        </div>
-      {% endfor %}
-    </div>
+        </form>
+        <form method="post" action="{{ url_for('coach_delete', sub_id=s['id']) }}" onsubmit="return confirm('Delete this submission?');">
+          <button class="btn-danger" type="submit">Delete</button>
+        </form>
+      </details>
+    {% endfor %}
   {% endif %}
-</div>
+</section>
 {% endblock %}

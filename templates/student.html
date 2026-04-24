@@ -1,76 +1,60 @@
 {% extends "base.html" %}
-{% block title %}Find a coach — GetMyCoach{% endblock %}
+{% block title %}Find a Coach · Get My Coach Uganda{% endblock %}
 {% block content %}
-<div class="card">
-  <h2>Find a verified coach in Uganda</h2>
-  <form method="get" action="{{ url_for('student') }}" class="row">
-    <div>
-      <label for="category">Sport</label>
-      <select id="category" name="category">
-        <option value="">All sports</option>
-        {% for c in categories %}
-          <option value="{{ c }}" {% if c == category %}selected{% endif %}>{{ c }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div>
-      <label for="location">Location (e.g. Kampala)</label>
-      <input id="location" name="location" type="text" value="{{ location }}" placeholder="Town or district" />
-    </div>
-    <div style="grid-column: 1 / -1; display: flex; gap: 10px;">
-      <button class="btn btn-primary" type="submit">Search</button>
-      <a class="btn" href="{{ url_for('student') }}">Clear</a>
-    </div>
-  </form>
-</div>
+<section class="hero">
+  <h1>Find your perfect coach in Uganda</h1>
+  <p>Verified, paid-up coaches in 10 sports — ready to train you today.</p>
+</section>
 
-{% if coaches|length == 0 %}
-  <div class="card"><p class="muted">No coaches match your filters yet. Try clearing them.</p></div>
+<form class="filters" method="get">
+  <label>
+    Sport
+    <select name="category">
+      <option value="">All sports</option>
+      {% for s in SPORTS %}
+        <option value="{{ s }}" {% if s == category %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label>
+    Location
+    <input type="text" name="location" value="{{ location }}" placeholder="e.g. Kampala">
+  </label>
+  <button type="submit" class="btn-primary">Search</button>
+  {% if category or location %}
+    <a class="btn-link" href="{{ url_for('index') }}">Clear</a>
+  {% endif %}
+</form>
+
+{% if not coaches %}
+  <p class="empty">No coaches found. Try a different filter.</p>
 {% else %}
-  <div class="grid cols-3">
+  <div class="grid">
     {% for c in coaches %}
-      <div class="coach-card">
-        <div class="photo">
-          {% if c['image_url'] %}
-            <img src="{{ c['image_url'] }}" alt="{{ c['full_name'] }}" />
-          {% else %}
-            {{ (c['full_name'] or '?')[0]|upper }}
-          {% endif %}
-        </div>
-        <div class="body">
-          <div class="name">{{ c['full_name'] }}</div>
-          {% if c['category'] %}<span class="badge badge-warning">{{ c['category'] }}</span>{% endif %}
-          {% if c['location'] %}<div class="meta">📍 {{ c['location'] }}</div>{% endif %}
-          {% if c['experience_years'] %}<div class="meta">🎯 {{ c['experience_years'] }} yrs experience</div>{% endif %}
-          {% if c['bio'] %}<div class="bio">{{ c['bio'] }}</div>{% endif %}
+      <article class="card">
+        {% if c['image_url'] %}
+          <img class="avatar" src="{{ c['image_url'] }}" alt="{{ c['full_name'] }}">
+        {% else %}
+          <div class="avatar fallback">{{ (c['full_name'] or '?')[:1] }}</div>
+        {% endif %}
+        <h3>{{ c['full_name'] }}</h3>
+        <p class="meta">
+          <span class="badge">{{ c['category'] or 'Coach' }}</span>
+          {% if c['location'] %}<span>📍 {{ c['location'] }}</span>{% endif %}
+        </p>
+        {% if c['experience_years'] %}<p>🎯 {{ c['experience_years'] }} yrs experience</p>{% endif %}
+        {% if c['hourly_rate'] %}<p class="price">UGX {{ '{:,}'.format(c['hourly_rate']) }} / hr</p>{% endif %}
+        {% if c['bio'] %}<p class="bio">{{ c['bio'] }}</p>{% endif %}
 
-          {% if c['phone'] %}
-          <div class="contact-actions" id="contact-{{ c['id'] }}">
-            <a class="btn btn-sm btn-primary" href="tel:{{ c['phone'] }}">📞 Call</a>
-            <a class="btn btn-sm" href="https://wa.me/{{ c['phone']|replace('+','')|replace(' ','') }}" target="_blank" rel="noopener">💬 WhatsApp</a>
-            <a class="btn btn-sm" href="sms:{{ c['phone'] }}">✉️ SMS</a>
+        {% if c['phone'] %}
+          <div class="contact-actions">
+            <a class="btn-primary" href="tel:{{ c['phone'] }}">📞 Call</a>
+            <a class="btn-secondary" href="https://wa.me/{{ c['phone']|replace('+','')|replace(' ','') }}" target="_blank" rel="noopener">💬 WhatsApp</a>
+            <a class="btn-secondary" href="sms:{{ c['phone'] }}">✉️ SMS</a>
           </div>
-          {% endif %}
-        </div>
-        <div class="footer">
-          {% if c['hourly_rate'] %}
-            <span class="rate">UGX {{ '{:,}'.format(c['hourly_rate']) }}/hr</span>
-          {% else %}
-            <span class="muted">Rate on request</span>
-          {% endif %}
-          {% if c['phone'] %}
-            <button type="button" class="btn btn-sm btn-primary" onclick="toggleContact({{ c['id'] }})">Contact</button>
-          {% endif %}
-        </div>
-      </div>
+        {% endif %}
+      </article>
     {% endfor %}
   </div>
 {% endif %}
-
-<script>
-  function toggleContact(id) {
-    var el = document.getElementById('contact-' + id);
-    if (el) el.classList.toggle('open');
-  }
-</script>
 {% endblock %}
