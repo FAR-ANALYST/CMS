@@ -20,9 +20,13 @@ app.config.update(
 DATABASE = os.path.join(os.path.dirname(__file__), "database.db")
 SPORTS = ["Athletics", "Chess", "Checkers", "Football", "Gym/Fitness", "Handball", "Netball", "Scrabble", "Swimming", "Volleyball"]
 
+# SUPER ADMIN CREDENTIALS
 ADMIN_USERNAME = "FAROUK"
 ADMIN_PASSWORD = "FAROUK2020"
 
+# ---------------------------------------------------------------------------
+# DATABASE HELPERS
+# ---------------------------------------------------------------------------
 def get_db():
     db = getattr(g, "_database", None)
     if db is None:
@@ -33,8 +37,7 @@ def get_db():
 @app.teardown_appcontext
 def close_connection(exception):
     db = getattr(g, "_database", None)
-    if db is not None:
-        db.close()
+    if db is not None: db.close()
 
 def init_db():
     with app.app_context():
@@ -44,7 +47,8 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL, email TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL, full_name TEXT, phone TEXT,
-                sport TEXT, bio TEXT, location TEXT, image_url TEXT,
+                category TEXT, bio TEXT, location TEXT, image_url TEXT,
+                experience_years INTEGER DEFAULT 0, hourly_rate INTEGER DEFAULT 0,
                 is_verified INTEGER DEFAULT 0, payment_status TEXT DEFAULT 'pending'
             );
         """)
@@ -52,11 +56,27 @@ def init_db():
 
 init_db()
 
+# ---------------------------------------------------------------------------
+# PUBLIC ROUTES
+# ---------------------------------------------------------------------------
 @app.route("/")
 def index():
+    category = request.args.get('category', '')
+    location = request.args.get('location', '')
     db = get_db()
-    coaches = db.execute("SELECT * FROM coaches WHERE is_verified = 1 AND payment_status = 'paid'").fetchall()
-    return render_template("student.html", coaches=coaches, sports=SPORTS)
+    
+    query = "SELECT * FROM coaches WHERE is_verified = 1 AND payment_status = 'paid'"
+    params = []
+    
+    if category:
+        query += " AND category = ?"
+        params.append(category)
+    if location:
+        query += " AND location LIKE ?"
+        params.append(f"%{location}%")
+        
+    coaches = db.execute(query, params).fetchall()
+    return render_template("student.html", coaches=coaches, sports=SPORTS, category=category, location=location)
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -64,69 +84,96 @@ def login():
         login_id = (request.form.get("login_id") or "").strip()
         password = request.form.get("password") or ""
 
-        # Admin Logic
         if login_id.upper() == ADMIN_USERNAME and password == ADMIN_PASSWORD:
-            session.permanent = True
-            session["user_id"] = "admin"
-            session["is_admin"] = True
+            session.update({"user_id": "admin", "is_admin": True})
             return redirect(url_for("admin"))
 
-        # Coach Logic
         db = get_db()
         user = db.execute("SELECT * FROM coaches WHERE username = ? OR email = ?", (login_id, login_id)).fetchone()
         if user and (check_password_hash(user["password"], password) or user["password"] == password):
-            session.permanent = True
-            session["user_id"] = user["id"]
-            session["is_admin"] = False
+            session.update({"user_id": user["id"], "is_admin": False})
             return redirect(url_for("coach_dashboard"))
         
-        flash("Invalid credentials.", "danger")
+        flash("Invalid username or password.", "danger")
     return render_template("login.html")
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        email = request.form.get("email", "").strip().lower()
-        password = request.form.get("password", "")
+        u, e, p = request.form.get("username"), request.form.get("email"), request.form.get("password")
         try:
             db = get_db()
-            db.execute("INSERT INTO coaches (username, email, password) VALUES (?, ?, ?)",
-                       (username, email, generate_password_hash(password)))
+            db.execute("INSERT INTO coaches (username, email, password) VALUES (?, ?, ?)", (u, e.lower(), generate_password_hash(p)))
             db.commit()
-            flash("Account created! Please log in.", "success")
+            flash("Account created! Log in below.", "success")
             return redirect(url_for("login"))
         except:
-            flash("Error: Username/Email taken.", "danger")
+            flash("Username or Email already exists.", "danger")
     return render_template("signup.html")
 
-@app.route("/coach", methods=["GET", "POST"])
+# ---------------------------------------------------------------------------
+# COACH ROUTES
+# ---------------------------------------------------------------------------
+@app.route("/coach")
 def coach_dashboard():
-    if "user_id" not in session or session.get("is_admin"):
-        return redirect(url_for("login"))
+    if "user_id" not in session or session.get("is_admin"): return redirect(url_for("login"))
     db = get_db()
-    if request.method == "POST":
-        db.execute("UPDATE coaches SET full_name=?, phone=?, sport=?, bio=?, location=?, image_url=?, payment_status='submitted' WHERE id=?",
-                   (request.form.get("full_name"), request.form.get("phone"), request.form.get("sport"), 
-                    request.form.get("bio"), request.form.get("location"), request.form.get("image_url"), session["user_id"]))
-        db.commit()
-        flash("Profile updated.", "success")
-    coach = db.execute("SELECT * FROM coaches WHERE id = ?", (session["user_id"],)).fetchone()
-    return render_template("coach.html", coach=coach, sports=SPORTS)
+    submissions = db.execute("SELECT * FROM coaches WHERE id = ?", (session["user_id"],)).fetchall()
+    return render_template("coach.html", submissions=submissions, SPORTS=SPORTS)
 
-@app.route("/admin", methods=["GET", "POST"])
-def admin():
-    if not session.get("is_admin"):
-        return redirect(url_for("login"))
+@app.route("/coach/submit", methods=["POST"])
+def coach_submit():
+    # In this logic, we update the existing record of the logged-in coach
     db = get_db()
-    if request.method == "POST":
-        action, cid = request.form.get("action"), request.form.get("coach_id")
-        if action == "approve": db.execute("UPDATE coaches SET is_verified=1, payment_status='paid' WHERE id=?", (cid,))
-        elif action == "delete": db.execute("DELETE FROM coaches WHERE id=?", (cid,))
-        db.commit()
-    pending = db.execute("SELECT * FROM coaches WHERE is_verified = 0").fetchall()
-    verified = db.execute("SELECT * FROM coaches WHERE is_verified = 1").fetchall()
-    return render_template("admin.html", pending=pending, verified=verified, sports=SPORTS)
+    db.execute("""UPDATE coaches SET full_name=?, phone=?, category=?, location=?, 
+                  experience_years=?, hourly_rate=?, bio=?, payment_status='submitted' WHERE id=?""",
+               (request.form.get("full_name"), request.form.get("phone"), request.form.get("category"),
+                request.form.get("location"), request.form.get("experience_years"), 
+                request.form.get("hourly_rate"), request.form.get("bio"), session["user_id"]))
+    db.commit()
+    flash("Profile submitted for approval.", "success")
+    return redirect(url_for("coach_dashboard"))
+
+@app.route("/coach/edit/<int:sub_id>", methods=["POST"])
+def coach_edit(sub_id):
+    db = get_db()
+    db.execute("UPDATE coaches SET full_name=?, phone=?, category=?, location=?, bio=? WHERE id=?",
+               (request.form.get("full_name"), request.form.get("phone"), request.form.get("category"),
+                request.form.get("location"), request.form.get("bio"), sub_id))
+    db.commit()
+    return redirect(url_for("coach_dashboard"))
+
+# ---------------------------------------------------------------------------
+# ADMIN ROUTES (FOR FAROUK)
+# ---------------------------------------------------------------------------
+@app.route("/admin")
+def admin():
+    if not session.get("is_admin"): return redirect(url_for("login"))
+    db = get_db()
+    pending = db.execute("SELECT * FROM coaches WHERE is_verified = 0 AND full_name IS NOT NULL").fetchall()
+    live = db.execute("SELECT * FROM coaches WHERE is_verified = 1").fetchall()
+    return render_template("admin.html", pending=pending, live=live, SPORTS=SPORTS)
+
+@app.route("/admin/approve/<int:sub_id>", methods=["POST"])
+def admin_approve(sub_id):
+    db = get_db()
+    db.execute("UPDATE coaches SET is_verified=1, payment_status='paid' WHERE id=?", (sub_id,))
+    db.commit()
+    return redirect(url_for("admin"))
+
+@app.route("/admin/unapprove/<int:sub_id>", methods=["POST"])
+def admin_unapprove(sub_id):
+    db = get_db()
+    db.execute("UPDATE coaches SET is_verified=0, payment_status='pending' WHERE id=?", (sub_id,))
+    db.commit()
+    return redirect(url_for("admin"))
+
+@app.route("/admin/delete/<int:sub_id>", methods=["POST"])
+def admin_delete(sub_id):
+    db = get_db()
+    db.execute("DELETE FROM coaches WHERE id=?", (sub_id,))
+    db.commit()
+    return redirect(url_for("admin"))
 
 @app.route("/logout")
 def logout():
