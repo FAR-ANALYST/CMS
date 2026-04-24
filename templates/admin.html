@@ -1,77 +1,60 @@
 {% extends "base.html" %}
-{% block title %}Admin Control — Get My Coach{% endblock %}
+{% block title %}Admin Dashboard — Farouk's Control{% endblock %}
 
 {% block content %}
 <style>
-    .admin-section { margin-bottom: 50px; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+    .admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+    .status-tag { padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
     .status-pending { background: rgba(212, 175, 55, 0.2); color: var(--gold); border: 1px solid var(--gold); }
     .status-live { background: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid #34d399; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: var(--panel); border-radius: 10px; overflow: hidden; }
+    th, td { padding: 15px; text-align: left; border-bottom: 1px solid #222; }
+    th { background: #1a1a1a; color: var(--gold); }
 </style>
 
-<h1>Farouk's Dashboard</h1>
+<h1>Farouk's Control Center</h1>
 
-<section class="admin-section panel">
-    <h2>➕ Add New Coach Manually</h2>
+<section class="panel">
+    <h2>➕ Add Coach Manually</h2>
     <form method="POST" action="{{ url_for('admin') }}" enctype="multipart/form-data">
         <input type="hidden" name="action" value="quick_add">
-        
-        <div class="form-row">
-            <div>
-                <label>Coach Name</label>
-                <input name="full_name" placeholder="Enter Full Name" required>
-                
-                <label>Contact Phone</label>
-                <input name="phone" placeholder="+256...">
-            </div>
-            <div>
-                <label>Sport Category</label>
-                <select name="category">
-                    {% for s in SPORTS %}
-                    <option value="{{ s }}">{{ s }}</option>
-                    {% endfor %}
-                </select>
-                
-                <label>Upload Coach Picture</label>
-                <input type="file" name="image" accept="image/*">
-            </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <input name="full_name" placeholder="Full Name" required>
+            <input name="phone" placeholder="Phone Number">
+            <select name="category">
+                {% for s in SPORTS %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+            </select>
+            <input type="file" name="image" accept="image/*">
         </div>
-        
-        <label>Location</label>
-        <input name="location" placeholder="e.g. Kampala, Central">
-        
-        <label>Experience/Bio</label>
-        <textarea name="bio" rows="3"></textarea>
-        
-        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">Publish Coach Immediately</button>
+        <input name="location" placeholder="Location (e.g. Kampala)">
+        <textarea name="bio" placeholder="Coach Bio/Experience" rows="2"></textarea>
+        <button type="submit" class="btn-primary" style="width:100%; margin-top: 10px;">Add & Publish Immediately</button>
     </form>
 </section>
 
-<hr style="border: 0; border-top: 1px solid #333; margin: 40px 0;">
-
-<section class="admin-section">
+<section style="margin-top: 40px;">
     <h2>⏳ Pending Review ({{ pending|length }})</h2>
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+    <div class="admin-grid">
         {% for c in pending %}
         <div class="card">
             <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px;">
                 {% if c['image_url'] %}
-                    <img src="{{ c['image_url'] }}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 1px solid var(--gold);">
+                    <img src="{{ c['image_url'] }}" class="avatar" style="width: 60px; height: 60px; border-radius: 50%;">
                 {% endif %}
                 <div>
-                    <h3 style="margin: 0;">{{ c['full_name'] }}</h3>
-                    <span class="status-badge status-pending">PENDING</span>
+                    <h3 style="margin:0;">{{ c['full_name'] }}</h3>
+                    <span class="status-tag status-pending">SUBMITTED</span>
                 </div>
             </div>
-            <p style="font-size: 0.8rem; color: #aaa; margin-bottom: 15px;">{{ c['bio'][:100] }}...</p>
+            <p style="font-size: 0.85rem; color: #ccc;"><strong>Sport:</strong> {{ c['category'] }}</p>
+            <p style="font-size: 0.85rem; color: #888;">{{ c['bio'][:100] }}...</p>
             
-            <div style="display: flex; gap: 10px;">
-                <form method="POST" action="{{ url_for('admin_approve', sub_id=c['id']) }}" style="flex: 1;">
-                    <button class="btn-primary" style="width: 100%; font-size: 0.8rem;">APPROVE</button>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <form method="POST" action="{{ url_for('admin_approve', sub_id=c['id']) }}" style="flex:1;">
+                    <button type="submit" class="btn-primary" style="width:100%;">APPROVE</button>
                 </form>
-                <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}" style="flex: 1;">
-                    <button class="btn-primary" style="width: 100%; background: var(--red); color: white; border: none; font-size: 0.8rem;" onclick="return confirm('Delete this profile?')">DELETE</button>
+                <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}" style="flex:1;">
+                    <button type="submit" class="btn-primary" style="width:100%; background:var(--red); color:white; border:none;" onclick="return confirm('Delete permanently?')">REJECT</button>
                 </form>
             </div>
         </div>
@@ -79,28 +62,28 @@
     </div>
 </section>
 
-<section class="admin-section">
-    <h2>✅ Currently Live ({{ live|length }})</h2>
-    <table style="width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 10px; overflow: hidden;">
-        <thead style="background: #222; text-align: left;">
+<section style="margin-top: 40px;">
+    <h2>✅ Verified Coaches</h2>
+    <table>
+        <thead>
             <tr>
-                <th style="padding: 15px;">Coach</th>
+                <th>Name</th>
                 <th>Category</th>
                 <th>Location</th>
                 <th>Status</th>
-                <th>Action</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for c in live %}
-            <tr style="border-bottom: 1px solid #333;">
-                <td style="padding: 15px;">{{ c['full_name'] }}</td>
+            <tr>
+                <td>{{ c['full_name'] }}</td>
                 <td>{{ c['category'] }}</td>
                 <td>{{ c['location'] }}</td>
-                <td><span class="status-badge status-live">LIVE</span></td>
+                <td><span class="status-tag status-live">LIVE</span></td>
                 <td>
-                    <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}">
-                        <button style="background: none; border: none; color: var(--red); cursor: pointer;" onclick="return confirm('Remove coach?')">Remove</button>
+                    <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}" style="display:inline;">
+                        <button type="submit" style="background:none; border:none; color:var(--red); cursor:pointer;" onclick="return confirm('Remove from live site?')">Remove</button>
                     </form>
                 </td>
             </tr>
