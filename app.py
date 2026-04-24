@@ -62,7 +62,6 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Run on import so gunicorn/Render always has tables ready
 init_db()
 
 
@@ -85,7 +84,6 @@ def index():
     cat = request.args.get("category", "")
     loc = request.args.get("location", "")
 
-    # Only show verified coaches
     query  = "SELECT * FROM coaches WHERE is_verified = 1"
     params = []
     if cat:
@@ -122,7 +120,7 @@ def coach_submit():
     if not u_id:
         return redirect(url_for("login"))
 
-    db        = get_db()
+    db         = get_db()
     full_name = request.form.get("full_name", "").strip()
     phone     = request.form.get("phone", "").strip()
     category  = request.form.get("category", "").strip()
@@ -130,7 +128,6 @@ def coach_submit():
     bio       = request.form.get("bio", "").strip()
     img_url   = request.form.get("existing_image", "")
 
-    # Handle optional photo upload
     if "image" in request.files:
         file = request.files["image"]
         if file and file.filename:
@@ -138,11 +135,9 @@ def coach_submit():
             file.save(os.path.join(app.config["UPLOAD_FOLDER"], fn))
             img_url = f"/static/uploads/{fn}"
 
-    # ── THE FIX ──────────────────────────────────────────────
-    # Set payment_status = 'submitted' so the admin query can
-    # distinguish real submissions from blank new signups.
-    # Also reset is_verified = 0 so any re-submission goes back
-    # into the pending queue for re-approval.
+    # ── UPDATED LOGIC ──────────────────────────────────────────────
+    # Reset is_verified to 0 and explicitly set payment_status to 'submitted'
+    # using the specific user ID in the WHERE clause.
     db.execute(
         """
         UPDATE coaches
@@ -175,7 +170,6 @@ def admin():
 
     db = get_db()
 
-    # Admin can add a coach directly (goes live immediately)
     if request.method == "POST" and request.form.get("action") == "quick_add":
         img = ""
         if "image" in request.files:
@@ -186,12 +180,13 @@ def admin():
                 img = f"/static/uploads/{fn}"
 
         name  = request.form.get("full_name", "").strip()
-        email = f"{name.replace(' ', '_').lower()}@system.com"
+        # Added a tiny random hex to email to prevent IntegrityErrors if names repeat
+        email = f"{name.replace(' ', '_').lower()}_{os.urandom(2).hex()}@system.com"
         db.execute(
             """
-            INSERT INTO coaches
-                (full_name, phone, category, location, bio,
-                 image_url, is_verified, payment_status,
+            INSERT INTO coaches 
+                (full_name, phone, category, location, bio, 
+                 image_url, is_verified, payment_status, 
                  username, email, password)
             VALUES (?,?,?,?,?,?,1,'paid',?,?,'admin_added')
             """,
@@ -210,12 +205,13 @@ def admin():
         flash(f"Coach '{name}' added and is now live.", "success")
         return redirect(url_for("admin"))
 
-    # ── THE FIX ──────────────────────────────────────────────
-    # Filter by payment_status = 'submitted' so only coaches who
-    # actually filled out and submitted their form appear here.
-    # Plain new signups (payment_status = 'pending') are excluded.
+    # ── UPDATED LOGIC ──────────────────────────────────────────────
+    # Improved Query: Shows anyone not verified who has EITHER 'submitted' status
+    # OR has simply filled out their name. This ensures no one is hidden.
     pending = db.execute(
-        "SELECT * FROM coaches WHERE is_verified = 0 AND payment_status = 'submitted'"
+        """SELECT * FROM coaches 
+           WHERE is_verified = 0 
+           AND (payment_status = 'submitted' OR (full_name IS NOT NULL AND full_name != ''))"""
     ).fetchall()
 
     live = db.execute(
@@ -264,14 +260,12 @@ def login():
         lid = request.form.get("login_id", "").strip()
         pwd = request.form.get("password", "")
 
-        # Admin hard-coded bypass
         if lid.upper() == ADMIN_USERNAME and pwd == ADMIN_PASSWORD:
             session.clear()
             session.update({"user_id": "admin", "is_admin": True})
             session.permanent = True
             return redirect(url_for("admin"))
 
-        # Coach / student lookup
         user = get_db().execute(
             "SELECT * FROM coaches WHERE username = ? OR email = ?",
             (lid, lid)
@@ -279,7 +273,7 @@ def login():
 
         if user and (
             check_password_hash(user["password"], pwd)
-            or user["password"] == pwd          # fallback for admin_added
+            or user["password"] == pwd
         ):
             session.clear()
             session.update({"user_id": user["id"], "is_admin": False})
@@ -320,6 +314,5 @@ def logout():
     return redirect(url_for("welcome"))
 
 
-# ══════════════════════════════════════════════
 if __name__ == "__main__":
     app.run(debug=True)
