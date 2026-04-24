@@ -1,93 +1,39 @@
 {% extends "base.html" %}
-{% block title %}Find Your Coach — Get My Coach{% endblock %}
-
 {% block content %}
 <style>
-    /* 4-Column Grid System */
-    .coach-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 25px;
-        margin-top: 20px;
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 1100px) { .coach-grid { grid-template-columns: repeat(2, 1fr); } }
+    .coach-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    @media (max-width: 1024px) { .coach-grid { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 600px) { .coach-grid { grid-template-columns: 1fr; } }
-
-    .card {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        height: 100%;
-        transition: transform 0.3s ease;
-    }
-    .card:hover { transform: translateY(-5px); border-color: var(--gold); }
-
-    .contact-actions {
-        display: flex;
-        gap: 10px;
-        margin-top: auto;
-        padding-top: 15px;
-    }
-    .btn-copy {
-        background: transparent;
-        border: 1px solid var(--gold);
-        color: var(--gold);
-        flex: 1;
-    }
-    .btn-copy:active { background: var(--gold); color: black; }
 </style>
 
-<h1>Available Coaches</h1>
-
-<form method="GET" style="display: flex; gap: 10px; margin-bottom: 40px;">
+<h1>Top Coaches</h1>
+<form method="GET" style="display: flex; gap: 10px; margin-bottom: 30px;">
     <select name="category" style="flex: 1;">
         <option value="">All Sports</option>
-        {% for s in SPORTS %}
-        <option value="{{ s }}">{{ s }}</option>
-        {% endfor %}
+        {% for s in SPORTS %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
     </select>
-    <input type="text" name="location" placeholder="Kampala, Entebbe..." style="flex: 1;">
-    <button type="submit" class="btn-primary">Find Coach</button>
+    <input name="location" placeholder="Search Location..." style="flex: 1;">
+    <button type="submit" class="btn-primary">Search</button>
 </form>
 
 <div class="coach-grid">
     {% for c in coaches %}
     <div class="card">
-        <div>
-            {% if c['image_url'] %}
-                <img src="{{ c['image_url'] }}" class="avatar" alt="{{ c['full_name'] }}">
-            {% else %}
-                <div class="avatar" style="background:#222; display:flex; align-items:center; justify-content:center; color:#444;">
-                    <span>NO IMAGE</span>
-                </div>
-            {% endif %}
-            
-            <h3 style="margin: 15px 0 5px 0;">{{ c['full_name'] }}</h3>
-            <p style="color: var(--gold); font-weight: bold; font-size: 0.9rem; margin-bottom: 10px;">
-                {{ c['category'] }} • {{ c['location'] }}
-            </p>
-            <p style="font-size: 0.85rem; color: #bbb; line-height: 1.4; margin-bottom: 15px;">
-                {{ c['bio'][:120] }}{% if c['bio']|length > 120 %}...{% endif %}
-            </p>
-        </div>
-
-        <div class="contact-actions">
-            <a href="tel:{{ c['phone'] }}" class="btn-primary" style="flex: 1; text-align: center; text-decoration: none; font-size: 0.8rem;">CALL</a>
-            <button class="btn-primary btn-copy" onclick="copyToClipboard('{{ c['phone'] }}')" style="font-size: 0.8rem;">COPY</button>
+        <img src="{{ c['image_url'] or '/static/default.jpg' }}" class="avatar">
+        <h3>{{ c['full_name'] }}</h3>
+        <p style="color: var(--gold); font-size: 0.9rem;">{{ c['category'] }} | {{ c['location'] }}</p>
+        <div style="display: flex; gap: 5px; margin-top: 10px;">
+            <a href="tel:{{ c['phone'] }}" class="btn-primary" style="flex: 1; text-align: center; font-size: 0.8rem;">CALL</a>
+            <button onclick="copyPhone('{{ c['phone'] }}')" class="btn-primary" style="flex: 1; background: transparent; border: 1px solid var(--gold); color: var(--gold); font-size: 0.8rem;">COPY</button>
         </div>
     </div>
     {% endfor %}
 </div>
 
 <script>
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        alert("Coach contact copied to clipboard!");
-    }).catch(err => {
-        console.error('Failed to copy: ', err);
-    });
+function copyPhone(num) {
+    navigator.clipboard.writeText(num);
+    alert("Phone copied: " + num);
 }
 </script>
 {% endblock %}
