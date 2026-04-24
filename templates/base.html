@@ -2,56 +2,49 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}Get My Coach Uganda{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}GMC Uganda{% endblock %}</title>
     <style>
-        :root {
-            --bg: #0f0f0f;        /* Deep Dark */
-            --card: #1a1a1a;      /* Lighter Dark */
-            --gold: #d4af37;      /* Luxury Gold */
-            --red: #b91c1c;       /* Blood Red */
-            --white: #f3f4f6;
-        }
-        body { background: var(--bg); color: var(--white); font-family: sans-serif; margin: 0; padding: 20px; }
-        
-        /* Dark Theme Panels */
-        .panel, .card, .sub-row { 
-            background: var(--card); 
-            border: 1px solid rgba(212, 175, 55, 0.2); 
-            border-radius: 12px; 
-            padding: 20px; 
-            margin-bottom: 20px;
-        }
-
+        :root { --bg: #0a0a0a; --panel: #141414; --gold: #d4af37; --red: #b91c1c; --text: #f0f0f0; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 20px; }
         h1, h2, h3 { color: var(--gold); text-transform: uppercase; letter-spacing: 1px; }
-
-        /* Buttons */
-        .btn-primary { background: var(--gold); color: black; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; text-decoration: none; display: inline-block; }
-        .btn-danger { background: var(--red); color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; }
-        .btn-secondary { background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 8px 15px; border-radius: 5px; cursor: pointer; }
-
-        /* Forms */
-        input, select, textarea { 
-            width: 100%; padding: 10px; margin: 10px 0; 
-            background: #2a2a2a; border: 1px solid #444; color: white; border-radius: 5px; 
-        }
-        label { color: var(--gold); font-size: 0.8rem; font-weight: bold; }
-
-        /* Status Badges */
-        .badge, .status { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
-        .status-live { background: #065f46; color: #34d399; }
-        .status-pending { background: #92400e; color: #fbbf24; }
+        .btn-primary { background: var(--gold); color: black; border: none; padding: 12px 24px; border-radius: 6px; font-weight: 800; cursor: pointer; text-decoration: none; display: inline-block; }
+        .panel, .card { background: var(--panel); border: 1px solid #222; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin-bottom: 25px; }
+        .avatar { width: 100%; height: 250px; object-fit: cover; border-radius: 10px; cursor: zoom-in; transition: transform 0.3s ease; }
+        .avatar:hover { transform: scale(1.02); border: 1px solid var(--gold); }
+        
+        /* Lightbox Magnifier */
+        #lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; justify-content: center; align-items: center; }
+        #lightbox img { max-width: 90%; max-height: 90%; border: 3px solid var(--gold); border-radius: 5px; }
+        
+        nav { display: flex; align-items: center; gap: 20px; padding-bottom: 20px; border-bottom: 1px solid #333; margin-bottom: 30px; }
+        nav a { color: var(--text); text-decoration: none; font-weight: bold; font-size: 0.9rem; }
+        nav a:hover { color: var(--gold); }
+        input, select, textarea { width: 100%; padding: 12px; background: #1f1f1f; border: 1px solid #333; color: white; border-radius: 8px; margin: 10px 0; box-sizing: border-box; }
     </style>
 </head>
 <body>
-    <nav style="margin-bottom: 40px; border-bottom: 1px solid #333; padding-bottom: 10px;">
-        <a href="/" style="color: var(--gold); text-decoration: none; font-weight: bold;">🏆 GET MY COACH</a>
-        {% if session.get('user_id') %}
-            <a href="/logout" style="float: right; color: var(--red); text-decoration: none;">LOGOUT</a>
+    <nav>
+        <span style="color: var(--gold); font-size: 1.2rem; font-weight: 900;">🏆 GMC UGANDA</span>
+        <a href="{{ url_for('index') }}">Student Portal</a>
+        {% if session.get('is_admin') %}
+            <a href="{{ url_for('admin') }}" style="color: var(--gold);">Admin Dashboard</a>
         {% endif %}
+        <a href="{{ url_for('coach_dashboard') }}">Coach Access</a>
+        <a href="{{ url_for('logout') }}" style="color: var(--red); margin-left: auto;">Logout</a>
     </nav>
 
-    <div class="container">
-        {% block content %}{% endblock %}
-    </div>
+    {% block content %}{% endblock %}
+
+    <div id="lightbox" onclick="this.style.display='none'"><img src=""></div>
+    <script>
+        document.querySelectorAll('.avatar').forEach(img => {
+            img.onclick = function(e) {
+                e.stopPropagation();
+                document.querySelector('#lightbox img').src = this.src;
+                document.getElementById('lightbox').style.display = 'flex';
+            }
+        });
+    </script>
 </body>
 </html>
