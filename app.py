@@ -7,11 +7,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET", "uganda_gold_2026_final")
+app.secret_key = os.environ.get("FLASK_SECRET", "uganda_gold_standard_2026")
 app.permanent_session_lifetime = timedelta(hours=24)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
-# File Upload Setup
 UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -33,72 +32,30 @@ def close_connection(exception):
     db = getattr(g, "_database", None)
     if db: db.close()
 
-# --- THE GATEKEEPER ---
 @app.before_request
 def require_login():
-    # Endpoints allowed without login
     allowed = ['welcome', 'login', 'signup', 'static']
     if request.endpoint not in allowed and 'user_id' not in session:
         return redirect(url_for('welcome'))
-
-# --- ROUTES (Must match url_for names exactly) ---
-
-@app.route("/welcome")
-def welcome(): 
-    return render_template("welcome.html")
 
 @app.route("/")
 def index():
     db = get_db()
     cat = request.args.get('category', '')
     loc = request.args.get('location', '')
+    
     query = "SELECT * FROM coaches WHERE is_verified = 1 AND payment_status = 'paid'"
     params = []
-    if cat: 
-        query += " AND category = ?"; params.append(cat)
-    if loc: 
-        query += " AND location LIKE ?"; params.append(f"%{loc}%")
+    
+    if cat or loc:
+        if cat: query += " AND category = ?"; params.append(cat)
+        if loc: query += " AND location LIKE ?"; params.append(f"%{loc}%")
+    else:
+        # Limit to 8 coaches on the "Immediate" home page
+        query += " LIMIT 8"
+    
     coaches = db.execute(query, params).fetchall()
     return render_template("student.html", coaches=coaches, SPORTS=SPORTS)
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        lid = request.form.get("login_id", "").strip()
-        pwd = request.form.get("password", "")
-        if lid.upper() == ADMIN_USERNAME and pwd == ADMIN_PASSWORD:
-            session.update({"user_id": "admin", "is_admin": True})
-            return redirect(url_for("admin"))
-        user = get_db().execute("SELECT * FROM coaches WHERE username=? OR email=?", (lid, lid)).fetchone()
-        if user and (check_password_hash(user["password"], pwd) or user["password"] == pwd):
-            session.update({"user_id": user["id"], "is_admin": False})
-            return redirect(url_for("index"))
-        flash("Invalid Credentials", "danger")
-    return render_template("login.html")
-
-@app.route("/signup", methods=["GET", "POST"])
-def signup():
-    if request.method == "POST":
-        u, e, p = request.form.get("username"), request.form.get("email"), request.form.get("password")
-        try:
-            db = get_db()
-            db.execute("INSERT INTO coaches (username, email, password) VALUES (?, ?, ?)", 
-                       (u, e.lower(), generate_password_hash(p)))
-            db.commit()
-            return redirect(url_for("login"))
-        except: flash("User already exists", "danger")
-    return render_template("signup.html")
-
-@app.route("/coach")
-def coach_dashboard():
-    db = get_db()
-    u_id = session.get("user_id")
-    # FAROUK sees everyone, coach sees only themselves
-    if session.get("is_admin"):
-        submissions = db.execute("SELECT * FROM coaches").fetchall()
-    else:
-        submissions = db.execute("SELECT * FROM coaches WHERE id = ?", (u_id,)).fetchall()
-    return render_template("coach.html", submissions=submissions, SPORTS=SPORTS)
 
 @app.route("/coach/submit", methods=["POST"])
 def coach_submit():
@@ -109,16 +66,17 @@ def coach_submit():
     if 'image' in request.files:
         file = request.files['image']
         if file and file.filename != '':
-            fn = secure_filename(f"up_{u_id}_{file.filename}")
+            fn = secure_filename(f"coach_{u_id}_{file.filename}")
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], fn))
             img_url = f"/static/uploads/{fn}"
 
+    # Important: This sets is_verified to 0 so it goes back to Admin Pending
     db.execute("""UPDATE coaches SET full_name=?, phone=?, category=?, location=?, bio=?, image_url=?, 
                   payment_status='submitted', is_verified=0 WHERE id=?""",
                (request.form.get("full_name"), request.form.get("phone"), request.form.get("category"),
                 request.form.get("location"), request.form.get("bio"), img_url, u_id))
     db.commit()
-    flash("Submitted for approval!", "success")
+    flash("Profile submitted to FAROUK for approval!", "success")
     return redirect(url_for("coach_dashboard"))
 
 @app.route("/admin", methods=["GET", "POST"])
@@ -134,6 +92,7 @@ def admin():
                 fn = secure_filename(file.filename)
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], fn))
                 img = f"/static/uploads/{fn}"
+        
         db.execute("""INSERT INTO coaches (full_name, phone, category, location, bio, image_url, is_verified, payment_status, username, email, password) 
                       VALUES (?,?,?,?,?,?,1,'paid',?,?,'admin_pass')""", 
                    (request.form.get("full_name"), request.form.get("phone"), request.form.get("category"), 
@@ -144,15 +103,36 @@ def admin():
     live = db.execute("SELECT * FROM coaches WHERE is_verified = 1").fetchall()
     return render_template("admin.html", pending=pending, live=live, SPORTS=SPORTS)
 
+# ... (Keep other routes like login, signup, welcome, approve as before) ...
+
+@app.route("/welcome")
+def welcome(): return render_template("welcome.html")
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        lid, pwd = request.form.get("login_id", "").strip(), request.form.get("password", "")
+        if lid.upper() == ADMIN_USERNAME and pwd == ADMIN_PASSWORD:
+            session.update({"user_id": "admin", "is_admin": True})
+            return redirect(url_for("admin"))
+        user = get_db().execute("SELECT * FROM coaches WHERE username=? OR email=?", (lid, lid)).fetchone()
+        if user and (check_password_hash(user["password"], pwd) or user["password"] == pwd):
+            session.update({"user_id": user["id"], "is_admin": False})
+            return redirect(url_for("index"))
+        flash("Invalid Credentials", "danger")
+    return render_template("login.html")
+
+@app.route("/coach")
+def coach_dashboard():
+    db = get_db()
+    u_id = session.get("user_id")
+    if session.get("is_admin"): submissions = db.execute("SELECT * FROM coaches").fetchall()
+    else: submissions = db.execute("SELECT * FROM coaches WHERE id = ?", (u_id,)).fetchall()
+    return render_template("coach.html", submissions=submissions, SPORTS=SPORTS)
+
 @app.route("/admin/approve/<int:sub_id>", methods=["POST"])
 def admin_approve(sub_id):
     get_db().execute("UPDATE coaches SET is_verified=1, payment_status='paid' WHERE id=?", (sub_id,))
-    get_db().commit()
-    return redirect(url_for("admin"))
-
-@app.route("/admin/delete/<int:sub_id>", methods=["POST"])
-def admin_delete(sub_id):
-    get_db().execute("DELETE FROM coaches WHERE id=?", (sub_id,))
     get_db().commit()
     return redirect(url_for("admin"))
 
@@ -160,10 +140,6 @@ def admin_delete(sub_id):
 def logout():
     session.clear()
     return redirect(url_for("welcome"))
-
-with app.app_context():
-    get_db().execute("CREATE TABLE IF NOT EXISTS coaches (id INTEGER PRIMARY KEY, username, email, password, full_name, phone, category, bio, location, image_url, is_verified DEFAULT 0, payment_status DEFAULT 'pending')")
-    get_db().commit()
 
 if __name__ == "__main__":
     app.run(debug=True)
