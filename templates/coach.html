@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Coach Dashboard · Get My Coach{% endblock %}
+{% block content %}
+<section class="page-header">
+  <h1>Coach Dashboard</h1>
+  <p class="muted">Submit one or many coaches. Each submission goes to admin for approval after payment.</p>
+</section>
+
+<div class="card warning-card">
+  <h2>Payment details</h2>
+  <p><strong>MTN Mobile Money:</strong> +256 789 268 324</p>
+  <p><strong>Airtel Money:</strong> +256 757 307 541</p>
+  <p class="muted small">After paying, submit the coach below. Admin will verify and publish.</p>
+</div>
+
+<div class="card">
+  <h2>➕ Submit a coach</h2>
+  <form method="post" enctype="multipart/form-data" class="form">
+    <label>Photo
+      <input type="file" name="photo" accept="image/*" />
+    </label>
+    <div class="form-row">
+      <label>Full name *
+        <input type="text" name="full_name" required />
+      </label>
+      <label>Phone
+        <input type="text" name="phone" placeholder="+256 7XX XXX XXX" />
+      </label>
+    </div>
+    <div class="form-row">
+      <label>Sport
+        <select name="category">
+          <option value="">Select sport</option>
+          {% for c in sport_categories %}
+            <option value="{{ c }}">{{ c }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Location
+        <input type="text" name="location" placeholder="Kampala" />
+      </label>
+    </div>
+    <div class="form-row">
+      <label>Years of experience
+        <input type="number" name="experience_years" min="0" value="0" />
+      </label>
+      <label>Hourly rate (UGX)
+        <input type="number" name="hourly_rate" min="0" value="0" />
+      </label>
+    </div>
+    <label>Bio
+      <textarea name="bio" rows="3" placeholder="Tell students about coaching experience…"></textarea>
+    </label>
+    <button type="submit" class="btn-primary btn-block">Submit for approval</button>
+  </form>
+</div>
+
+<section>
+  <h2>My submissions ({{ submissions|length }})</h2>
+  {% if submissions %}
+    <div class="list">
+      {% for s in submissions %}
+        <div class="row">
+          {% if s['image_url'] %}
+            <img src="{{ s['image_url'] }}" class="avatar avatar-sm" alt="" />
+          {% else %}
+            <div class="avatar avatar-sm avatar-fallback">{{ (s['full_name'] or '?')[0]|upper }}</div>
+          {% endif %}
+          <div class="row-body">
+            <strong>{{ s['full_name'] }}</strong>
+            <span class="muted small">{{ s['category'] or '—' }} · {{ s['location'] or '—' }}</span>
+          </div>
+          {% if s['is_verified'] and s['payment_status'] == 'paid' %}
+            <span class="badge badge-success">✓ Live</span>
+          {% elif s['payment_status'] == 'submitted' %}
+            <span class="badge badge-warning">⏳ Awaiting approval</span>
+          {% else %}
+            <span class="badge">Pending</span>
+          {% endif %}
+          <form method="post" action="{{ url_for('coach_delete', sid=s['id']) }}" onsubmit="return confirm('Remove this submission?')">
+            <button type="submit" class="btn-ghost btn-icon" title="Remove">🗑</button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">You haven't submitted any coaches yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

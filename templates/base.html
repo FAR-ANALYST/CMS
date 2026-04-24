@@ -1,47 +1,47 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}Get My Coach Uganda{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
 </head>
 <body>
-  {% block navbar %}
-  {% if current_user %}
-  <nav class="navbar">
-    <a href="{{ url_for('index') }}" class="brand">🏆 Get My Coach UG</a>
-    <div class="nav-links">
-      {% if current_user.role == 'admin' %}
-        <a href="{{ url_for('admin') }}">🛠️ Admin</a>
-        <a href="{{ url_for('coach') }}">🏆 Coach</a>
-        <a href="{{ url_for('student') }}">🎓 Student</a>
-      {% elif current_user.role == 'coach' %}
-        <a href="{{ url_for('coach') }}">My Submissions</a>
+  <header class="navbar">
+    <a href="{{ url_for('student') }}" class="brand">🏆 Get My Coach Uganda</a>
+    <nav class="nav-links">
+      <a href="{{ url_for('student') }}">🎓 Students</a>
+      {% if current_user %}
+        {% if current_user['role'] == 'coach' or current_user['role'] == 'admin' %}
+          <a href="{{ url_for('coach') }}">🏃 Coach</a>
+        {% endif %}
+        {% if current_user['role'] == 'admin' %}
+          <a href="{{ url_for('admin') }}">👑 Admin</a>
+        {% endif %}
+        <span class="user-chip">{{ current_user['full_name'] or current_user['email'] }}</span>
+        <a href="{{ url_for('logout') }}" class="btn-ghost">Log out</a>
       {% else %}
-        <a href="{{ url_for('student') }}">Find a Coach</a>
+        <a href="{{ url_for('login') }}" class="btn-ghost">Log in</a>
+        <a href="{{ url_for('signup') }}" class="btn-primary">Sign up</a>
       {% endif %}
-      <span style="color: var(--text-dim);">{{ current_user.username }}</span>
-      <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline">Logout</a>
-    </div>
-  </nav>
-  {% endif %}
-  {% endblock %}
+    </nav>
+  </header>
 
-  <main class="{% block main_class %}container{% endblock %}">
+  <main class="container">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
-        {% for category, msg in messages %}
-          <div class="flash flash-{{ category }}">{{ msg }}</div>
-        {% endfor %}
+        <div class="flashes">
+          {% for category, msg in messages %}
+            <div class="flash flash-{{ category }}">{{ msg }}</div>
+          {% endfor %}
+        </div>
       {% endif %}
     {% endwith %}
-
     {% block content %}{% endblock %}
   </main>
 
-  {% block footer %}
-  <footer>© 2025 Get My Coach Uganda</footer>
-  {% endblock %}
+  <footer class="footer">
+    <p>© Get My Coach Uganda</p>
+  </footer>
 </body>
 </html>
