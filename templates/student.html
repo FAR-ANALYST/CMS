@@ -1,28 +1,93 @@
 {% extends "base.html" %}
+{% block title %}Find Your Coach — Get My Coach{% endblock %}
+
 {% block content %}
-<h1>Expert Sports Coaches</h1>
-<form method="GET" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; margin-bottom: 40px;">
-    <select name="category">
+<style>
+    /* 4-Column Grid System */
+    .coach-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 25px;
+        margin-top: 20px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 1100px) { .coach-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .coach-grid { grid-template-columns: 1fr; } }
+
+    .card {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100%;
+        transition: transform 0.3s ease;
+    }
+    .card:hover { transform: translateY(-5px); border-color: var(--gold); }
+
+    .contact-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: auto;
+        padding-top: 15px;
+    }
+    .btn-copy {
+        background: transparent;
+        border: 1px solid var(--gold);
+        color: var(--gold);
+        flex: 1;
+    }
+    .btn-copy:active { background: var(--gold); color: black; }
+</style>
+
+<h1>Available Coaches</h1>
+
+<form method="GET" style="display: flex; gap: 10px; margin-bottom: 40px;">
+    <select name="category" style="flex: 1;">
         <option value="">All Sports</option>
-        {% for s in SPORTS %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+        {% for s in SPORTS %}
+        <option value="{{ s }}">{{ s }}</option>
+        {% endfor %}
     </select>
-    <input type="text" name="location" placeholder="Search by City or Location...">
-    <button type="submit" class="btn-primary">Filter Coaches</button>
+    <input type="text" name="location" placeholder="Kampala, Entebbe..." style="flex: 1;">
+    <button type="submit" class="btn-primary">Find Coach</button>
 </form>
 
-<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px;">
+<div class="coach-grid">
     {% for c in coaches %}
     <div class="card">
-        {% if c['image_url'] %}
-            <img src="{{ c['image_url'] }}" class="avatar">
-        {% else %}
-            <div class="avatar" style="background:#222; display:flex; align-items:center; justify-content:center; color:var(--gold);">NO IMAGE</div>
-        {% endif %}
-        <h3>{{ c['full_name'] }}</h3>
-        <p style="color: var(--gold); font-weight: bold; margin-bottom: 5px;">{{ c['category'] }} | {{ c['location'] }}</p>
-        <p style="font-size: 0.9rem; line-height: 1.5; color: #bbb; height: 4.5em; overflow: hidden;">{{ c['bio'] }}</p>
-        <a href="tel:{{ c['phone'] }}" class="btn-primary" style="width: 100%; text-align: center; margin-top: 15px;">Contact Coach</a>
+        <div>
+            {% if c['image_url'] %}
+                <img src="{{ c['image_url'] }}" class="avatar" alt="{{ c['full_name'] }}">
+            {% else %}
+                <div class="avatar" style="background:#222; display:flex; align-items:center; justify-content:center; color:#444;">
+                    <span>NO IMAGE</span>
+                </div>
+            {% endif %}
+            
+            <h3 style="margin: 15px 0 5px 0;">{{ c['full_name'] }}</h3>
+            <p style="color: var(--gold); font-weight: bold; font-size: 0.9rem; margin-bottom: 10px;">
+                {{ c['category'] }} • {{ c['location'] }}
+            </p>
+            <p style="font-size: 0.85rem; color: #bbb; line-height: 1.4; margin-bottom: 15px;">
+                {{ c['bio'][:120] }}{% if c['bio']|length > 120 %}...{% endif %}
+            </p>
+        </div>
+
+        <div class="contact-actions">
+            <a href="tel:{{ c['phone'] }}" class="btn-primary" style="flex: 1; text-align: center; text-decoration: none; font-size: 0.8rem;">CALL</a>
+            <button class="btn-primary btn-copy" onclick="copyToClipboard('{{ c['phone'] }}')" style="font-size: 0.8rem;">COPY</button>
+        </div>
     </div>
     {% endfor %}
 </div>
+
+<script>
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert("Coach contact copied to clipboard!");
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+    });
+}
+</script>
 {% endblock %}
