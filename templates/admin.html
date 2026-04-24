@@ -1,167 +1,111 @@
 {% extends "base.html" %}
-
-{% block title %}FAROUK Dashboard · Get My Coach Uganda{% endblock %}
+{% block title %}Admin Control — Get My Coach{% endblock %}
 
 {% block content %}
 <style>
-    /* Admin Specific Luxury Styles */
-    .admin-nav {
-        display: flex;
-        gap: 20px;
-        background: #1a1a1a;
-        padding: 15px 25px;
-        border-radius: 12px;
-        border: 1px solid var(--gold);
-        margin-bottom: 30px;
-        align-items: center;
-    }
-    .admin-nav a {
-        color: var(--white);
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 0.9rem;
-        transition: 0.3s;
-    }
-    .admin-nav a:hover { color: var(--gold); }
-    .admin-nav a.active { color: var(--gold); border-bottom: 2px solid var(--gold); }
-
-    .form-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px;
-    }
-    .full { grid-column: 1 / -1; }
-    
-    .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 20px;
-        margin-top: 20px;
-    }
-
-    .badge {
-        background: rgba(212, 175, 55, 0.1);
-        color: var(--gold);
-        border: 1px solid var(--gold);
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-    }
-
-    .row-actions {
-        display: flex;
-        gap: 10px;
-        margin-top: 15px;
-        border-top: 1px solid #333;
-        padding-top: 15px;
-    }
-
-    .empty-msg {
-        text-align: center;
-        padding: 40px;
-        color: #666;
-        border: 2px dashed #333;
-        border-radius: 12px;
-    }
+    .admin-section { margin-bottom: 50px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+    .status-pending { background: rgba(212, 175, 55, 0.2); color: var(--gold); border: 1px solid var(--gold); }
+    .status-live { background: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid #34d399; }
 </style>
 
-<div class="admin-nav">
-    <span style="color: var(--gold); font-weight: 800; margin-right: 15px;">🛡️ ADMIN SYSTEM</span>
-    <a href="{{ url_for('admin') }}" class="active">DASHBOARD</a>
-    <a href="{{ url_for('index') }}">VIEW STUDENT FACE</a>
-    <a href="{{ url_for('coach_dashboard') }}">COACH MODE</a>
-    <a href="{{ url_for('logout') }}" style="margin-left: auto; color: var(--red);">LOGOUT</a>
-</div>
+<h1>Farouk's Dashboard</h1>
 
-<h1>Admin Dashboard</h1>
-<p style="color: #888; margin-bottom: 30px;">Logged in as: <strong>{{ session['user_id'].upper() }}</strong></p>
-
-<section class="panel">
-    <h2>➕ Quick Add Coach</h2>
-    <p style="font-size: 0.8rem; color: #666; margin-bottom: 15px;">Use this to manually add a coach. They will appear on the Student Page instantly.</p>
-    
-    <form method="POST" action="{{ url_for('admin') }}" class="form-grid">
+<section class="admin-section panel">
+    <h2>➕ Add New Coach Manually</h2>
+    <form method="POST" action="{{ url_for('admin') }}" enctype="multipart/form-data">
         <input type="hidden" name="action" value="quick_add">
         
-        <label>Full Name
-            <input name="full_name" placeholder="Coach Name" required>
-        </label>
-        
-        <label>Phone
-            <input name="phone" placeholder="+256...">
-        </label>
-        
-        <label>Sport
-            <select name="category" required>
-                <option value="">— choose sport —</option>
-                {% for s in SPORTS %}
-                <option value="{{ s }}">{{ s }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        
-        <label>Location
-            <input name="location" placeholder="e.g. Kampala">
-        </label>
-        
-        <label class="full">Bio / Experience
-            <textarea name="bio" rows="2" placeholder="Briefly describe the coach..."></textarea>
-        </label>
-        
-        <div class="full">
-            <button class="btn-primary" type="submit">Add & Publish Now</button>
+        <div class="form-row">
+            <div>
+                <label>Coach Name</label>
+                <input name="full_name" placeholder="Enter Full Name" required>
+                
+                <label>Contact Phone</label>
+                <input name="phone" placeholder="+256...">
+            </div>
+            <div>
+                <label>Sport Category</label>
+                <select name="category">
+                    {% for s in SPORTS %}
+                    <option value="{{ s }}">{{ s }}</option>
+                    {% endfor %}
+                </select>
+                
+                <label>Upload Coach Picture</label>
+                <input type="file" name="image" accept="image/*">
+            </div>
         </div>
+        
+        <label>Location</label>
+        <input name="location" placeholder="e.g. Kampala, Central">
+        
+        <label>Experience/Bio</label>
+        <textarea name="bio" rows="3"></textarea>
+        
+        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">Publish Coach Immediately</button>
     </form>
 </section>
 
-<section class="panel" style="border-left: 4px solid var(--gold);">
-    <h2>⏳ Pending Submissions ({{ pending|length }})</h2>
-    {% if not pending %}
-        <div class="empty-msg">No coaches are currently waiting for approval.</div>
-    {% else %}
-        <div class="grid">
-            {% for c in pending %}
-            <article class="card">
-                <h3>{{ c['full_name'] }}</h3>
-                <p><span class="badge">{{ c['category'] }}</span> 📍 {{ c['location'] }}</p>
-                <p style="font-size: 0.85rem; margin-top: 10px;">📞 {{ c['phone'] }}</p>
-                <p class="bio" style="font-style: italic; font-size: 0.8rem; color: #aaa;">"{{ c['bio'][:100] }}..."</p>
-                
-                <div class="row-actions">
-                    <form method="POST" action="{{ url_for('admin_approve', sub_id=c['id']) }}">
-                        <button class="btn-primary" type="submit">✅ Approve & Live</button>
-                    </form>
-                    
-                    <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}" onsubmit="return confirm('Permanently delete this submission?');">
-                        <button class="btn-danger" type="submit">Delete</button>
-                    </form>
+<hr style="border: 0; border-top: 1px solid #333; margin: 40px 0;">
+
+<section class="admin-section">
+    <h2>⏳ Pending Review ({{ pending|length }})</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+        {% for c in pending %}
+        <div class="card">
+            <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px;">
+                {% if c['image_url'] %}
+                    <img src="{{ c['image_url'] }}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 1px solid var(--gold);">
+                {% endif %}
+                <div>
+                    <h3 style="margin: 0;">{{ c['full_name'] }}</h3>
+                    <span class="status-badge status-pending">PENDING</span>
                 </div>
-            </article>
-            {% endfor %}
+            </div>
+            <p style="font-size: 0.8rem; color: #aaa; margin-bottom: 15px;">{{ c['bio'][:100] }}...</p>
+            
+            <div style="display: flex; gap: 10px;">
+                <form method="POST" action="{{ url_for('admin_approve', sub_id=c['id']) }}" style="flex: 1;">
+                    <button class="btn-primary" style="width: 100%; font-size: 0.8rem;">APPROVE</button>
+                </form>
+                <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}" style="flex: 1;">
+                    <button class="btn-primary" style="width: 100%; background: var(--red); color: white; border: none; font-size: 0.8rem;" onclick="return confirm('Delete this profile?')">DELETE</button>
+                </form>
+            </div>
         </div>
-    {% endif %}
+        {% endfor %}
+    </div>
 </section>
 
-<section class="panel" style="border-left: 4px solid #065f46;">
-    <h2>✅ Live on Student Page ({{ live|length }})</h2>
-    {% if not live %}
-        <div class="empty-msg">No coaches are currently live.</div>
-    {% else %}
-        <div class="grid">
+<section class="admin-section">
+    <h2>✅ Currently Live ({{ live|length }})</h2>
+    <table style="width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 10px; overflow: hidden;">
+        <thead style="background: #222; text-align: left;">
+            <tr>
+                <th style="padding: 15px;">Coach</th>
+                <th>Category</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
             {% for c in live %}
-            <article class="card" style="opacity: 0.9;">
-                <h3 style="color: var(--white);">{{ c['full_name'] }}</h3>
-                <p><span class="badge" style="border-color: #065f46; color: #34d399;">{{ c['category'] }}</span> 📍 {{ c['location'] }}</p>
-                
-                <div class="row-actions">
-                    <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}" onsubmit="return confirm('Remove this coach from the live site?');">
-                        <button class="btn-danger" style="background: transparent; border: 1px solid var(--red); color: var(--red);" type="submit">Remove Coach</button>
+            <tr style="border-bottom: 1px solid #333;">
+                <td style="padding: 15px;">{{ c['full_name'] }}</td>
+                <td>{{ c['category'] }}</td>
+                <td>{{ c['location'] }}</td>
+                <td><span class="status-badge status-live">LIVE</span></td>
+                <td>
+                    <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}">
+                        <button style="background: none; border: none; color: var(--red); cursor: pointer;" onclick="return confirm('Remove coach?')">Remove</button>
                     </form>
-                </div>
-            </article>
+                </td>
+            </tr>
             {% endfor %}
-        </div>
-    {% endif %}
+        </tbody>
+    </table>
 </section>
-
 {% endblock %}
