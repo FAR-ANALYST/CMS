@@ -12,10 +12,9 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET", "uganda_coach_secret_2026")
 app.permanent_session_lifetime = timedelta(hours=24)
 
-# Render sits behind a reverse proxy — required so Flask sees HTTPS correctly
+# ProxyFix for Render/Production environments
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
-# Session cookies must be Secure on Render (HTTPS) and SameSite=Lax to survive redirects
 app.config.update(
     SESSION_COOKIE_SECURE=True,
     SESSION_COOKIE_HTTPONLY=True,
@@ -30,13 +29,13 @@ SPORTS = [
 ]
 
 # ---------------------------------------------------------------------------
-# HARD-CODED ADMIN CREDENTIALS  ← THIS IS THE LOGIN YOU WANT
+# HARD-CODED ADMIN CREDENTIALS
 # ---------------------------------------------------------------------------
 ADMIN_USERNAME = "FAROUK"
 ADMIN_PASSWORD = "FAROUK2020"
 
 # ---------------------------------------------------------------------------
-# DATABASE
+# DATABASE HELPERS
 # ---------------------------------------------------------------------------
 def get_db():
     db = getattr(g, "_database", None)
@@ -52,34 +51,34 @@ def close_connection(exception):
         db.close()
 
 def init_db():
-    conn = sqlite3.connect(DATABASE)
-    conn.executescript("""
-        CREATE TABLE IF NOT EXISTS coaches (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            full_name TEXT,
-            phone TEXT,
-            sport TEXT,
-            bio TEXT,
-            location TEXT,
-            image_url TEXT,
-            is_verified INTEGER DEFAULT 0,
-            payment_status TEXT DEFAULT 'pending'
-        );
-        CREATE INDEX IF NOT EXISTS idx_coaches_sport ON coaches(sport);
-        CREATE INDEX IF NOT EXISTS idx_coaches_status ON coaches(payment_status, is_verified);
-    """)
-    conn.commit()
-    conn.close()
+    with app.app_context():
+        db = get_db()
+        db.executescript("""
+            CREATE TABLE IF NOT EXISTS coaches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                full_name TEXT,
+                phone TEXT,
+                sport TEXT,
+                bio TEXT,
+                location TEXT,
+                image_url TEXT,
+                is_verified INTEGER DEFAULT 0,
+                payment_status TEXT DEFAULT 'pending'
+            );
+            CREATE INDEX IF NOT EXISTS idx_coaches_sport ON coaches(sport);
+            CREATE INDEX IF NOT EXISTS idx_coaches_status ON coaches(payment_status, is_verified);
+        """)
+        db.commit()
 
-# Run at import time so gunicorn (Render) initializes the DB on boot
 init_db()
 
 # ---------------------------------------------------------------------------
 # ROUTES
 # ---------------------------------------------------------------------------
+
 @app.route("/")
 def index():
     db = get_db()
@@ -94,12 +93,13 @@ def login():
         login_id = (request.form.get("login_id") or "").strip()
         password = request.form.get("password") or ""
 
-        # ---- ADMIN BYPASS (hardcoded) ----
+        # ---- ADMIN LOGIN BYPASS ----
+        # Using .upper() ensures 'farouk' or 'Farouk' also works
         if login_id.upper() == ADMIN_USERNAME and password == ADMIN_PASSWORD:
             session.permanent = True
             session["user_id"] = "admin"
             session["is_admin"] = True
-            flash("Welcome, FAROUK!", "success")
+            flash("Welcome back, Admin FAROUK!", "success")
             return redirect(url_for("admin"))
 
         # ---- COACH LOGIN ----
@@ -109,21 +109,19 @@ def login():
             (login_id, login_id),
         ).fetchone()
 
-        if user and (
-            check_password_hash(user["password"], password)
-            or user["password"] == password  # legacy plaintext fallback
-        ):
-            session.permanent = True
-            session["user_id"] = user["id"]
-            session["is_admin"] = False
-            return redirect(url_for("coach_dashboard"))
+        if user:
+            # Check hashed password or legacy plaintext
+            if check_password_hash(user["password"], password) or user["password"] == password:
+                session.permanent = True
+                session["user_id"] = user["id"]
+                session["is_admin"] = False
+                return redirect(url_for("coach_dashboard"))
 
         flash("Invalid username or password.", "danger")
 
     return render_template("login.html")
 
 @app.route("/signup", methods=["GET", "POST"])
-@app.route("/register", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
         username = (request.form.get("username") or "").strip()
@@ -171,17 +169,16 @@ def coach_dashboard():
             ),
         )
         db.commit()
-        flash("Profile saved — awaiting admin approval.", "success")
+        flash("Profile updated! Waiting for admin approval.", "success")
         return redirect(url_for("coach_dashboard"))
 
-    coach = db.execute(
-        "SELECT * FROM coaches WHERE id = ?", (session["user_id"],)
-    ).fetchone()
+    coach = db.execute("SELECT * FROM coaches WHERE id = ?", (session["user_id"],)).fetchone()
     return render_template("coach.html", coach=coach, sports=SPORTS)
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
     if not session.get("is_admin"):
+        flash("Unauthorized access.", "danger")
         return redirect(url_for("login"))
 
     db = get_db()
@@ -190,29 +187,17 @@ def admin():
         action = request.form.get("action")
         cid = request.form.get("coach_id")
         if action == "approve" and cid:
-            db.execute(
-                "UPDATE coaches SET is_verified=1, payment_status='paid' WHERE id=?",
-                (cid,),
-            )
+            db.execute("UPDATE coaches SET is_verified=1, payment_status='paid' WHERE id=?", (cid,))
         elif action == "remove" and cid:
-            db.execute(
-                "UPDATE coaches SET is_verified=0, payment_status='pending' WHERE id=?",
-                (cid,),
-            )
+            db.execute("UPDATE coaches SET is_verified=0, payment_status='pending' WHERE id=?", (cid,))
         elif action == "delete" and cid:
             db.execute("DELETE FROM coaches WHERE id=?", (cid,))
         db.commit()
         return redirect(url_for("admin"))
 
-    pending = db.execute(
-        "SELECT * FROM coaches WHERE is_verified = 0"
-    ).fetchall()
-    verified = db.execute(
-        "SELECT * FROM coaches WHERE is_verified = 1"
-    ).fetchall()
-    return render_template(
-        "admin.html", pending=pending, verified=verified, sports=SPORTS
-    )
+    pending = db.execute("SELECT * FROM coaches WHERE is_verified = 0").fetchall()
+    verified = db.execute("SELECT * FROM coaches WHERE is_verified = 1").fetchall()
+    return render_template("admin.html", pending=pending, verified=verified, sports=SPORTS)
 
 @app.route("/logout")
 def logout():
@@ -220,7 +205,7 @@ def logout():
     return redirect(url_for("index"))
 
 # ---------------------------------------------------------------------------
-# ERROR HANDLERS — never return a blank Render 500
+# ERROR HANDLERS
 # ---------------------------------------------------------------------------
 @app.errorhandler(404)
 def not_found(e):
@@ -228,7 +213,7 @@ def not_found(e):
 
 @app.errorhandler(500)
 def server_error(e):
-    flash("Something went wrong. Please try again.", "danger")
+    flash("A server error occurred. Please log in again.", "danger")
     return redirect(url_for("login"))
 
 if __name__ == "__main__":
