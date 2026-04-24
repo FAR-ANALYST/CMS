@@ -1,21 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Admin Dashboard — Farouk's Control{% endblock %}
-
 {% block content %}
-<style>
-    .admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
-    .status-tag { padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
-    .status-pending { background: rgba(212, 175, 55, 0.2); color: var(--gold); border: 1px solid var(--gold); }
-    .status-live { background: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid #34d399; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: var(--panel); border-radius: 10px; overflow: hidden; }
-    th, td { padding: 15px; text-align: left; border-bottom: 1px solid #222; }
-    th { background: #1a1a1a; color: var(--gold); }
-</style>
+<h1>Farouk's Dashboard</h1>
 
-<h1>Farouk's Control Center</h1>
-
-<section class="panel">
-    <h2>➕ Add Coach Manually</h2>
+<section class="panel" style="margin-bottom: 40px;">
+    <h3>Add New Coach Manually</h3>
     <form method="POST" action="{{ url_for('admin') }}" enctype="multipart/form-data">
         <input type="hidden" name="action" value="quick_add">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
@@ -26,69 +14,43 @@
             </select>
             <input type="file" name="image" accept="image/*">
         </div>
-        <input name="location" placeholder="Location (e.g. Kampala)">
-        <textarea name="bio" placeholder="Coach Bio/Experience" rows="2"></textarea>
-        <button type="submit" class="btn-primary" style="width:100%; margin-top: 10px;">Add & Publish Immediately</button>
+        <input name="location" placeholder="Training Location">
+        <textarea name="bio" placeholder="Bio"></textarea>
+        <button type="submit" class="btn-primary" style="width: 100%;">Publish Immediately</button>
     </form>
 </section>
 
-<section style="margin-top: 40px;">
-    <h2>⏳ Pending Review ({{ pending|length }})</h2>
-    <div class="admin-grid">
-        {% for c in pending %}
-        <div class="card">
-            <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px;">
-                {% if c['image_url'] %}
-                    <img src="{{ c['image_url'] }}" class="avatar" style="width: 60px; height: 60px; border-radius: 50%;">
-                {% endif %}
-                <div>
-                    <h3 style="margin:0;">{{ c['full_name'] }}</h3>
-                    <span class="status-tag status-pending">SUBMITTED</span>
-                </div>
-            </div>
-            <p style="font-size: 0.85rem; color: #ccc;"><strong>Sport:</strong> {{ c['category'] }}</p>
-            <p style="font-size: 0.85rem; color: #888;">{{ c['bio'][:100] }}...</p>
-            
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <form method="POST" action="{{ url_for('admin_approve', sub_id=c['id']) }}" style="flex:1;">
-                    <button type="submit" class="btn-primary" style="width:100%;">APPROVE</button>
-                </form>
-                <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}" style="flex:1;">
-                    <button type="submit" class="btn-primary" style="width:100%; background:var(--red); color:white; border:none;" onclick="return confirm('Delete permanently?')">REJECT</button>
-                </form>
-            </div>
+<h2>⏳ Pending Approval ({{ pending|length }})</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+    {% for c in pending %}
+    <div class="card">
+        <h3>{{ c['full_name'] }}</h3>
+        <p>{{ c['category'] }} • {{ c['location'] }}</p>
+        <div style="display: flex; gap: 10px;">
+            <form method="POST" action="{{ url_for('admin_approve', sub_id=c['id']) }}" style="flex: 1;">
+                <button class="btn-primary" style="width: 100%;">APPROVE</button>
+            </form>
+            <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}" style="flex: 1;">
+                <button class="btn-primary" style="background: var(--red); color: white; width: 100%;">DELETE</button>
+            </form>
         </div>
-        {% endfor %}
     </div>
-</section>
+    {% endfor %}
+</div>
 
-<section style="margin-top: 40px;">
-    <h2>✅ Verified Coaches</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Location</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for c in live %}
-            <tr>
-                <td>{{ c['full_name'] }}</td>
-                <td>{{ c['category'] }}</td>
-                <td>{{ c['location'] }}</td>
-                <td><span class="status-tag status-live">LIVE</span></td>
-                <td>
-                    <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}" style="display:inline;">
-                        <button type="submit" style="background:none; border:none; color:var(--red); cursor:pointer;" onclick="return confirm('Remove from live site?')">Remove</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</section>
+<h2 style="margin-top: 40px;">✅ Live on Website</h2>
+<table style="width: 100%; text-align: left; background: var(--panel); border-radius: 10px;">
+    <tr><th style="padding: 10px;">Name</th><th>Sport</th><th>Action</th></tr>
+    {% for c in live %}
+    <tr style="border-top: 1px solid #222;">
+        <td style="padding: 10px;">{{ c['full_name'] }}</td>
+        <td>{{ c['category'] }}</td>
+        <td>
+            <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}">
+                <button style="color: var(--red); background: none; border: none; cursor: pointer;">Remove</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
 {% endblock %}
