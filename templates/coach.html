@@ -1,35 +1,66 @@
 {% extends "base.html" %}
+{% block title %}My Profile — Get My Coach{% endblock %}
+
 {% block content %}
-<h1>Coach Settings</h1>
+<h1>Coach Dashboard</h1>
+<p>Update your profile below. All changes will be hidden until approved by Admin.</p>
 
 <section class="panel">
     <form method="POST" action="{{ url_for('coach_submit') }}" enctype="multipart/form-data">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div>
-                <label>Name</label>
-                <input name="full_name" value="{{ submissions[0]['full_name'] if submissions else '' }}" required>
-                <label>Sport</label>
+                <label>Full Professional Name</label>
+                <input name="full_name" value="{{ submissions[0]['full_name'] if submissions else '' }}" required placeholder="e.g. Kagulire Farouk">
+                
+                <label>Contact Phone (for students)</label>
+                <input name="phone" value="{{ submissions[0]['phone'] if submissions else '' }}" placeholder="+256...">
+                
+                <label>Sporting Category</label>
                 <select name="category">
                     {% for s in SPORTS %}
                     <option value="{{ s }}" {% if submissions and submissions[0]['category'] == s %}selected{% endif %}>{{ s }}</option>
                     {% endfor %}
                 </select>
             </div>
+            
             <div>
-                <label>Location</label>
-                <input name="location" value="{{ submissions[0]['location'] if submissions else '' }}">
-                <label>Profile Picture</label>
+                <label>Primary Training Location</label>
+                <input name="location" value="{{ submissions[0]['location'] if submissions else '' }}" placeholder="City/District">
+                
+                <label>Update Profile Photo</label>
                 <input type="file" name="image" accept="image/*">
                 <input type="hidden" name="existing_image" value="{{ submissions[0]['image_url'] if submissions else '' }}">
+                
+                {% if submissions and submissions[0]['image_url'] %}
+                <div style="margin-top: 10px;">
+                    <span style="font-size: 0.8rem; color: var(--gold);">Active Image:</span><br>
+                    <img src="{{ submissions[0]['image_url'] }}" class="avatar" style="width: 70px; height: 70px; margin-top: 5px; border: 1px solid #333;">
+                </div>
+                {% endif %}
             </div>
         </div>
-        <label>Bio</label>
-        <textarea name="bio" rows="4">{{ submissions[0]['bio'] if submissions else '' }}</textarea>
-        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 15px;">Update & Submit to Farouk</button>
+        
+        <label style="display:block; margin-top: 15px;">Coaching Experience & Bio</label>
+        <textarea name="bio" rows="5" placeholder="Tell students about your skills...">{{ submissions[0]['bio'] if submissions else '' }}</textarea>
+        
+        <button type="submit" class="btn-primary" style="width: 100%; margin-top: 25px; padding: 15px;">SUBMIT PROFILE FOR APPROVAL</button>
     </form>
 </section>
 
-<div class="panel" style="margin-top: 20px; border-left: 5px solid {% if submissions and submissions[0]['is_verified'] == 1 %}#34d399{% else %}var(--gold){% endif %};">
-    <p>Status: <strong>{% if submissions and submissions[0]['is_verified'] == 1 %}LIVE{% else %}PENDING APPROVAL{% endif %}</strong></p>
+<div class="panel" style="margin-top: 30px; border-left: 5px solid {% if submissions and submissions[0]['is_verified'] == 1 %}#34d399{% else %}var(--gold){% endif %};">
+    <h3 style="margin:0;">Profile Status: 
+        {% if submissions and submissions[0]['is_verified'] == 1 %}
+            <span style="color: #34d399;">LIVE (Visible to Students)</span>
+        {% else %}
+            <span style="color: var(--gold);">UNDER REVIEW (Hidden from Search)</span>
+        {% endif %}
+    </h3>
+    <p style="font-size: 0.85rem; color: #888; margin-top: 5px;">
+        {% if submissions and submissions[0]['is_verified'] == 1 %}
+            Students can now find and contact you. Any new updates will reset your status for re-approval.
+        {% else %}
+            Farouk has been notified of your update. Please wait for him to verify your details.
+        {% endif %}
+    </p>
 </div>
 {% endblock %}
