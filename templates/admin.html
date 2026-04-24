@@ -1,79 +1,167 @@
 {% extends "base.html" %}
-{% block title %}Admin · Get My Coach Uganda{% endblock %}
+
+{% block title %}FAROUK Dashboard · Get My Coach Uganda{% endblock %}
+
 {% block content %}
+<style>
+    /* Admin Specific Luxury Styles */
+    .admin-nav {
+        display: flex;
+        gap: 20px;
+        background: #1a1a1a;
+        padding: 15px 25px;
+        border-radius: 12px;
+        border: 1px solid var(--gold);
+        margin-bottom: 30px;
+        align-items: center;
+    }
+    .admin-nav a {
+        color: var(--white);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: 0.3s;
+    }
+    .admin-nav a:hover { color: var(--gold); }
+    .admin-nav a.active { color: var(--gold); border-bottom: 2px solid var(--gold); }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    .full { grid-column: 1 / -1; }
+    
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .badge {
+        background: rgba(212, 175, 55, 0.1);
+        color: var(--gold);
+        border: 1px solid var(--gold);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+    }
+
+    .row-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        border-top: 1px solid #333;
+        padding-top: 15px;
+    }
+
+    .empty-msg {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+        border: 2px dashed #333;
+        border-radius: 12px;
+    }
+</style>
+
+<div class="admin-nav">
+    <span style="color: var(--gold); font-weight: 800; margin-right: 15px;">🛡️ ADMIN SYSTEM</span>
+    <a href="{{ url_for('admin') }}" class="active">DASHBOARD</a>
+    <a href="{{ url_for('index') }}">VIEW STUDENT FACE</a>
+    <a href="{{ url_for('coach_dashboard') }}">COACH MODE</a>
+    <a href="{{ url_for('logout') }}" style="margin-left: auto; color: var(--red);">LOGOUT</a>
+</div>
+
 <h1>Admin Dashboard</h1>
+<p style="color: #888; margin-bottom: 30px;">Logged in as: <strong>{{ session['user_id'].upper() }}</strong></p>
 
 <section class="panel">
-  <h2>➕ Quick add — goes live immediately</h2>
-  <form method="post" action="{{ url_for('admin_add') }}" enctype="multipart/form-data" class="form-grid">
-    <label>Full name<input name="full_name" required></label>
-    <label>Phone<input name="phone" placeholder="+256..."></label>
-    <label>Sport
-      <select name="category" required>
-        <option value="">— choose sport —</option>
-        {% for s in SPORTS %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
-      </select>
-    </label>
-    <label>Location<input name="location"></label>
-    <label>Experience (yrs)<input name="experience_years" type="number" min="0" value="0"></label>
-    <label>Rate (UGX/hr)<input name="hourly_rate" type="number" min="0" value="0"></label>
-    <label class="full">Bio<textarea name="bio" rows="2"></textarea></label>
-    <label class="full">Photo<input name="image" type="file" accept="image/*"></label>
-    <button class="btn-primary" type="submit">Add coach (live now)</button>
-  </form>
+    <h2>➕ Quick Add Coach</h2>
+    <p style="font-size: 0.8rem; color: #666; margin-bottom: 15px;">Use this to manually add a coach. They will appear on the Student Page instantly.</p>
+    
+    <form method="POST" action="{{ url_for('admin') }}" class="form-grid">
+        <input type="hidden" name="action" value="quick_add">
+        
+        <label>Full Name
+            <input name="full_name" placeholder="Coach Name" required>
+        </label>
+        
+        <label>Phone
+            <input name="phone" placeholder="+256...">
+        </label>
+        
+        <label>Sport
+            <select name="category" required>
+                <option value="">— choose sport —</option>
+                {% for s in SPORTS %}
+                <option value="{{ s }}">{{ s }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        
+        <label>Location
+            <input name="location" placeholder="e.g. Kampala">
+        </label>
+        
+        <label class="full">Bio / Experience
+            <textarea name="bio" rows="2" placeholder="Briefly describe the coach..."></textarea>
+        </label>
+        
+        <div class="full">
+            <button class="btn-primary" type="submit">Add & Publish Now</button>
+        </div>
+    </form>
 </section>
 
-<section class="panel">
-  <h2>⏳ Pending approval ({{ pending|length }})</h2>
-  {% if not pending %}
-    <p class="empty">No pending submissions.</p>
-  {% else %}
-    <div class="grid">
-      {% for c in pending %}
-        <article class="card">
-          {% if c['image_url'] %}<img class="avatar" src="{{ c['image_url'] }}" alt="">{% else %}<div class="avatar fallback">{{ (c['full_name'] or '?')[:1] }}</div>{% endif %}
-          <h3>{{ c['full_name'] }}</h3>
-          <p class="meta"><span class="badge">{{ c['category'] or '—' }}</span> {% if c['location'] %}<span>📍 {{ c['location'] }}</span>{% endif %}</p>
-          <p>📞 {{ c['phone'] or '—' }}</p>
-          <p class="muted small">Status: {{ c['payment_status'] }}</p>
-          {% if c['bio'] %}<p class="bio">{{ c['bio'] }}</p>{% endif %}
-          <div class="row-actions">
-            <form method="post" action="{{ url_for('admin_approve', sub_id=c['id']) }}" style="display:inline">
-              <button class="btn-primary" type="submit">✅ Mark paid & live</button>
-            </form>
-            <form method="post" action="{{ url_for('admin_delete', sub_id=c['id']) }}" onsubmit="return confirm('Delete?');" style="display:inline">
-              <button class="btn-danger" type="submit">Delete</button>
-            </form>
-          </div>
-        </article>
-      {% endfor %}
-    </div>
-  {% endif %}
+<section class="panel" style="border-left: 4px solid var(--gold);">
+    <h2>⏳ Pending Submissions ({{ pending|length }})</h2>
+    {% if not pending %}
+        <div class="empty-msg">No coaches are currently waiting for approval.</div>
+    {% else %}
+        <div class="grid">
+            {% for c in pending %}
+            <article class="card">
+                <h3>{{ c['full_name'] }}</h3>
+                <p><span class="badge">{{ c['category'] }}</span> 📍 {{ c['location'] }}</p>
+                <p style="font-size: 0.85rem; margin-top: 10px;">📞 {{ c['phone'] }}</p>
+                <p class="bio" style="font-style: italic; font-size: 0.8rem; color: #aaa;">"{{ c['bio'][:100] }}..."</p>
+                
+                <div class="row-actions">
+                    <form method="POST" action="{{ url_for('admin_approve', sub_id=c['id']) }}">
+                        <button class="btn-primary" type="submit">✅ Approve & Live</button>
+                    </form>
+                    
+                    <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}" onsubmit="return confirm('Permanently delete this submission?');">
+                        <button class="btn-danger" type="submit">Delete</button>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    {% endif %}
 </section>
 
-<section class="panel">
-  <h2>✅ Live coaches ({{ live|length }})</h2>
-  {% if not live %}
-    <p class="empty">No live coaches yet.</p>
-  {% else %}
-    <div class="grid">
-      {% for c in live %}
-        <article class="card">
-          {% if c['image_url'] %}<img class="avatar" src="{{ c['image_url'] }}" alt="">{% else %}<div class="avatar fallback">{{ (c['full_name'] or '?')[:1] }}</div>{% endif %}
-          <h3>{{ c['full_name'] }}</h3>
-          <p class="meta"><span class="badge">{{ c['category'] or '—' }}</span> {% if c['location'] %}<span>📍 {{ c['location'] }}</span>{% endif %}</p>
-          <p>📞 {{ c['phone'] or '—' }}</p>
-          <div class="row-actions">
-            <form method="post" action="{{ url_for('admin_unapprove', sub_id=c['id']) }}" style="display:inline">
-              <button class="btn-secondary" type="submit">Unpublish</button>
-            </form>
-            <form method="post" action="{{ url_for('admin_delete', sub_id=c['id']) }}" onsubmit="return confirm('Delete?');" style="display:inline">
-              <button class="btn-danger" type="submit">Delete</button>
-            </form>
-          </div>
-        </article>
-      {% endfor %}
-    </div>
-  {% endif %}
+<section class="panel" style="border-left: 4px solid #065f46;">
+    <h2>✅ Live on Student Page ({{ live|length }})</h2>
+    {% if not live %}
+        <div class="empty-msg">No coaches are currently live.</div>
+    {% else %}
+        <div class="grid">
+            {% for c in live %}
+            <article class="card" style="opacity: 0.9;">
+                <h3 style="color: var(--white);">{{ c['full_name'] }}</h3>
+                <p><span class="badge" style="border-color: #065f46; color: #34d399;">{{ c['category'] }}</span> 📍 {{ c['location'] }}</p>
+                
+                <div class="row-actions">
+                    <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}" onsubmit="return confirm('Remove this coach from the live site?');">
+                        <button class="btn-danger" style="background: transparent; border: 1px solid var(--red); color: var(--red);" type="submit">Remove Coach</button>
+                    </form>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    {% endif %}
 </section>
+
 {% endblock %}
