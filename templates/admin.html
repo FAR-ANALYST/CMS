@@ -1,56 +1,209 @@
 {% extends "base.html" %}
+{% block title %}Admin — Get My Coach{% endblock %}
 {% block content %}
-<h1>Farouk's Dashboard</h1>
 
-<section class="panel" style="margin-bottom: 40px;">
-    <h3>Add New Coach Manually</h3>
+<h1 style="margin-bottom:6px;">Farouk's Dashboard</h1>
+<p style="color:#888; margin-bottom:30px;">
+    Pending coaches are those who submitted their profile form.
+    Approve once payment is confirmed — they go live immediately.
+</p>
+
+<!-- Flash messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for cat, msg in messages %}
+    <div style="padding:12px 16px; border-radius:10px; margin-bottom:16px;
+                background:{% if cat=='success' %}rgba(52,211,153,.1){% else %}rgba(239,68,68,.1){% endif %};
+                border:1px solid {% if cat=='success' %}rgba(52,211,153,.3){% else %}rgba(239,68,68,.3){% endif %};
+                color:{% if cat=='success' %}#34d399{% else %}#f87171{% endif %};">
+        {{ msg }}
+    </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<!-- ══ ADD COACH DIRECTLY ══ -->
+<section class="panel" style="margin-bottom:40px;
+    border:1px solid rgba(234,179,8,.2); background:rgba(234,179,8,.03);">
+    <h3 style="color:var(--gold); margin-top:0;">➕ Add Coach Directly (Goes Live Immediately)</h3>
     <form method="POST" action="{{ url_for('admin') }}" enctype="multipart/form-data">
         <input type="hidden" name="action" value="quick_add">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-            <input name="full_name" placeholder="Full Name" required>
-            <input name="phone" placeholder="Phone Number">
-            <select name="category">
-                {% for s in SPORTS %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
-            </select>
-            <input type="file" name="image" accept="image/*">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+            <div>
+                <label>Full Name *</label>
+                <input name="full_name" placeholder="e.g. Nakato Sarah" required>
+            </div>
+            <div>
+                <label>Phone Number</label>
+                <input name="phone" placeholder="+256...">
+            </div>
+            <div>
+                <label>Sport / Category *</label>
+                <select name="category" required>
+                    <option value="" disabled selected>— Select sport —</option>
+                    {% for s in SPORTS %}
+                    <option value="{{ s }}">{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Location / District *</label>
+                <input name="location" placeholder="e.g. Kampala" required>
+            </div>
+            <div>
+                <label>Profile Photo</label>
+                <input type="file" name="image" accept="image/*">
+            </div>
+            <div>
+                <label>Bio</label>
+                <input name="bio" placeholder="Brief coaching background">
+            </div>
         </div>
-        <input name="location" placeholder="Training Location">
-        <textarea name="bio" placeholder="Bio"></textarea>
-        <button type="submit" class="btn-primary" style="width: 100%;">Publish Immediately</button>
+        <button type="submit" class="btn-primary"
+                style="width:100%; margin-top:15px; padding:13px;">
+            Publish Coach Immediately
+        </button>
     </form>
 </section>
 
-<h2>⏳ Pending Approval ({{ pending|length }})</h2>
-<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+<!-- ══ PENDING APPROVALS ══ -->
+<h2 style="margin-bottom:15px;">
+    ⏳ Pending Approval
+    <span style="font-size:.85rem; color:#888; font-weight:normal;">
+        ({{ pending|length }} awaiting payment confirmation)
+    </span>
+</h2>
+
+{% if pending %}
+<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px,1fr)); gap:20px; margin-bottom:40px;">
     {% for c in pending %}
-    <div class="card">
-        <h3>{{ c['full_name'] }}</h3>
-        <p>{{ c['category'] }} • {{ c['location'] }}</p>
-        <div style="display: flex; gap: 10px;">
-            <form method="POST" action="{{ url_for('admin_approve', sub_id=c['id']) }}" style="flex: 1;">
-                <button class="btn-primary" style="width: 100%;">APPROVE</button>
+    <div class="card" style="border:1px solid rgba(234,179,8,.25);">
+
+        <!-- Photo + name -->
+        <div style="display:flex; align-items:center; gap:14px; margin-bottom:15px;">
+            <img src="{{ c['image_url'] or 'https://ui-avatars.com/api/?background=1a1a1a&color=EAB308&name=' + (c['full_name'] or 'Coach') }}"
+                 style="width:60px; height:60px; border-radius:12px; object-fit:cover;
+                        border:2px solid rgba(234,179,8,.3); flex-shrink:0;">
+            <div>
+                <h3 style="margin:0; font-size:1.1rem;">
+                    {{ c['full_name'] or '(Name not set)' }}
+                </h3>
+                <p style="margin:3px 0 0; font-size:.8rem; color:var(--gold);">
+                    {{ c['category'] or '—' }}
+                </p>
+            </div>
+        </div>
+
+        <!-- Details -->
+        <table style="width:100%; font-size:.82rem; color:#aaa; margin-bottom:15px;
+                      border-collapse:collapse;">
+            <tr>
+                <td style="padding:4px 0; color:#666; width:80px;">📍 Location</td>
+                <td style="color:#ddd;">{{ c['location'] or '—' }}</td>
+            </tr>
+            <tr>
+                <td style="padding:4px 0; color:#666;">📞 Phone</td>
+                <td style="color:#ddd;">{{ c['phone'] or '—' }}</td>
+            </tr>
+            {% if c['bio'] %}
+            <tr>
+                <td style="padding:4px 0; color:#666; vertical-align:top;">📝 Bio</td>
+                <td style="color:#bbb; font-style:italic;">
+                    {{ c['bio'][:100] }}{% if c['bio']|length > 100 %}…{% endif %}
+                </td>
+            </tr>
+            {% endif %}
+        </table>
+
+        <!-- Approve / Delete -->
+        <div style="display:flex; gap:10px;">
+            <form method="POST" action="{{ url_for('admin_approve', sub_id=c['id']) }}"
+                  style="flex:1;">
+                <button class="btn-primary"
+                        style="width:100%; padding:10px; font-size:.8rem;">
+                    ✅ Approve & Go Live
+                </button>
             </form>
-            <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}" style="flex: 1;">
-                <button class="btn-primary" style="background: var(--red); color: white; width: 100%;">DELETE</button>
+            <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}"
+                  style="flex:1;"
+                  onsubmit="return confirm('Delete {{ c['full_name'] }}?')">
+                <button style="width:100%; padding:10px; font-size:.8rem; cursor:pointer;
+                               background:rgba(239,68,68,.15); color:#f87171;
+                               border:1px solid rgba(239,68,68,.3); border-radius:8px;">
+                    🗑 Delete
+                </button>
             </form>
         </div>
     </div>
     {% endfor %}
 </div>
 
-<h2 style="margin-top: 40px;">✅ Live on Website</h2>
-<table style="width: 100%; text-align: left; background: var(--panel); border-radius: 10px;">
-    <tr><th style="padding: 10px;">Name</th><th>Sport</th><th>Action</th></tr>
-    {% for c in live %}
-    <tr style="border-top: 1px solid #222;">
-        <td style="padding: 10px;">{{ c['full_name'] }}</td>
-        <td>{{ c['category'] }}</td>
-        <td>
-            <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}">
-                <button style="color: var(--red); background: none; border: none; cursor: pointer;">Remove</button>
-            </form>
-        </td>
-    </tr>
-    {% endfor %}
-</table>
+{% else %}
+<div style="padding:40px; text-align:center; border:1px dashed #222;
+            border-radius:16px; color:#555; margin-bottom:40px;">
+    <p style="font-size:.9rem; font-style:italic;">
+        No coaches awaiting approval right now.
+    </p>
+</div>
+{% endif %}
+
+<!-- ══ LIVE COACHES ══ -->
+<h2 style="margin-bottom:15px;">
+    ✅ Live on Directory
+    <span style="font-size:.85rem; color:#888; font-weight:normal;">
+        ({{ live|length }} active)
+    </span>
+</h2>
+
+<div style="background:var(--panel); border-radius:14px; overflow:hidden;">
+    <table style="width:100%; text-align:left; border-collapse:collapse; font-size:.88rem;">
+        <thead>
+            <tr style="background:rgba(255,255,255,.04);">
+                <th style="padding:12px 16px; color:#888; font-weight:600;">Name</th>
+                <th style="padding:12px 16px; color:#888; font-weight:600;">Sport</th>
+                <th style="padding:12px 16px; color:#888; font-weight:600;">Location</th>
+                <th style="padding:12px 16px; color:#888; font-weight:600;">Phone</th>
+                <th style="padding:12px 16px; color:#888; font-weight:600;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in live %}
+            <tr style="border-top:1px solid #1e1e1e;">
+                <td style="padding:12px 16px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <img src="{{ c['image_url'] or 'https://ui-avatars.com/api/?background=1a1a1a&color=4ade80&size=60&name=' + (c['full_name'] or 'C') }}"
+                             style="width:36px; height:36px; border-radius:8px; object-fit:cover;">
+                        <span style="color:white; font-weight:600;">{{ c['full_name'] or '—' }}</span>
+                    </div>
+                </td>
+                <td style="padding:12px 16px;">
+                    <span style="color:var(--gold); font-size:.78rem; font-weight:700;
+                                 text-transform:uppercase; letter-spacing:.1em;">
+                        {{ c['category'] or '—' }}
+                    </span>
+                </td>
+                <td style="padding:12px 16px; color:#aaa;">{{ c['location'] or '—' }}</td>
+                <td style="padding:12px 16px; color:#aaa;">{{ c['phone'] or '—' }}</td>
+                <td style="padding:12px 16px;">
+                    <form method="POST" action="{{ url_for('admin_delete', sub_id=c['id']) }}"
+                          onsubmit="return confirm('Remove {{ c['full_name'] }} from the directory?')">
+                        <button style="color:#f87171; background:none; border:none;
+                                       cursor:pointer; font-size:.8rem; font-weight:600;">
+                            Remove
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            {% if not live %}
+            <tr>
+                <td colspan="5" style="padding:30px; text-align:center; color:#555; font-style:italic;">
+                    No coaches are live yet.
+                </td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
 {% endblock %}
