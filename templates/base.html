@@ -1,47 +1,57 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Get My Coach Uganda{% endblock %}</title>
-  <meta name="description" content="Find verified sports coaches across Uganda — football, chess, swimming, athletics and more.">
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta charset="UTF-8">
+    <title>{% block title %}Get My Coach Uganda{% endblock %}</title>
+    <style>
+        :root {
+            --bg: #0f0f0f;        /* Deep Dark */
+            --card: #1a1a1a;      /* Lighter Dark */
+            --gold: #d4af37;      /* Luxury Gold */
+            --red: #b91c1c;       /* Blood Red */
+            --white: #f3f4f6;
+        }
+        body { background: var(--bg); color: var(--white); font-family: sans-serif; margin: 0; padding: 20px; }
+        
+        /* Dark Theme Panels */
+        .panel, .card, .sub-row { 
+            background: var(--card); 
+            border: 1px solid rgba(212, 175, 55, 0.2); 
+            border-radius: 12px; 
+            padding: 20px; 
+            margin-bottom: 20px;
+        }
+
+        h1, h2, h3 { color: var(--gold); text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Buttons */
+        .btn-primary { background: var(--gold); color: black; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; text-decoration: none; display: inline-block; }
+        .btn-danger { background: var(--red); color: white; padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-secondary { background: transparent; border: 1px solid var(--gold); color: var(--gold); padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+
+        /* Forms */
+        input, select, textarea { 
+            width: 100%; padding: 10px; margin: 10px 0; 
+            background: #2a2a2a; border: 1px solid #444; color: white; border-radius: 5px; 
+        }
+        label { color: var(--gold); font-size: 0.8rem; font-weight: bold; }
+
+        /* Status Badges */
+        .badge, .status { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+        .status-live { background: #065f46; color: #34d399; }
+        .status-pending { background: #92400e; color: #fbbf24; }
+    </style>
 </head>
 <body>
-  <header class="nav">
-    <a class="brand" href="{{ url_for('index') }}">🏆 Get My Coach <span>Uganda</span></a>
-    <nav>
-      <a href="{{ url_for('index') }}">Find a coach</a>
-      {% if current_user %}
-        {% if current_user['role'] == 'admin' %}
-          <a href="{{ url_for('admin') }}">Admin</a>
-        {% else %}
-          <a href="{{ url_for('coach_dashboard') }}">My Profile</a>
+    <nav style="margin-bottom: 40px; border-bottom: 1px solid #333; padding-bottom: 10px;">
+        <a href="/" style="color: var(--gold); text-decoration: none; font-weight: bold;">🏆 GET MY COACH</a>
+        {% if session.get('user_id') %}
+            <a href="/logout" style="float: right; color: var(--red); text-decoration: none;">LOGOUT</a>
         {% endif %}
-        <a href="{{ url_for('logout') }}">Log out</a>
-      {% else %}
-        <a href="{{ url_for('login') }}">Log in</a>
-        <a class="btn-primary" href="{{ url_for('signup') }}">Become a coach</a>
-      {% endif %}
     </nav>
-  </header>
 
-  <main class="container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="flashes">
-          {% for cat, msg in messages %}
-            <div class="flash flash-{{ cat }}">{{ msg }}</div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
-
-    {% block content %}{% endblock %}
-  </main>
-
-  <footer class="foot">
-    <p>© 2026 Get My Coach Uganda · Connecting athletes to verified coaches</p>
-  </footer>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
 </body>
 </html>
