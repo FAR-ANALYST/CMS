@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Sign Up — Get My Coach Uganda{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block main_class %}auth-wrapper{% endblock %}
+
+{% block content %}
+<div class="auth-card">
+  <h1>Create Account</h1>
+  <p class="subtitle">Join as a student or coach</p>
+
+  <form method="POST" action="{{ url_for('signup') }}">
+    <label for="username">Username</label>
+    <input id="username" name="username" type="text" required>
+
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" required>
+
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" minlength="6" required>
+
+    <label for="role">I am a…</label>
+    <select id="role" name="role" required>
+      <option value="student">🎓 Student</option>
+      <option value="coach">🏆 Coach</option>
+    </select>
+
+    <button type="submit" class="btn btn-block">Create Account</button>
+  </form>
+
+  <p style="text-align:center; margin-top:1rem; color: var(--text-dim); font-size: 0.9rem;">
+    Already have an account? <a href="{{ url_for('login') }}">Log in</a>
+  </p>
+</div>
+{% endblock %}
