@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Get My Coach Uganda{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  {% block navbar %}
+  {% if current_user %}
+  <nav class="navbar">
+    <a href="{{ url_for('index') }}" class="brand">🏆 Get My Coach UG</a>
+    <div class="nav-links">
+      {% if current_user.role == 'admin' %}
+        <a href="{{ url_for('admin') }}">🛠️ Admin</a>
+        <a href="{{ url_for('coach') }}">🏆 Coach</a>
+        <a href="{{ url_for('student') }}">🎓 Student</a>
+      {% elif current_user.role == 'coach' %}
+        <a href="{{ url_for('coach') }}">My Submissions</a>
+      {% else %}
+        <a href="{{ url_for('student') }}">Find a Coach</a>
+      {% endif %}
+      <span style="color: var(--text-dim);">{{ current_user.username }}</span>
+      <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline">Logout</a>
+    </div>
+  </nav>
+  {% endif %}
+  {% endblock %}
+
+  <main class="{% block main_class %}container{% endblock %}">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, msg in messages %}
+          <div class="flash flash-{{ category }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block footer %}
+  <footer>© 2025 Get My Coach Uganda</footer>
+  {% endblock %}
+</body>
+</html>

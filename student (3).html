@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Find a Coach — Get My Coach Uganda{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>🎓 Find Your Coach</h2>
+  <p style="color: var(--text-dim); margin-bottom: 1rem;">Browse verified coaches across Uganda by sport.</p>
+
+  <div class="filters">
+    <a href="{{ url_for('student') }}" class="filter-pill {% if not sport_filter %}active{% endif %}">All Sports</a>
+    {% for sport in SPORTS %}
+      <a href="{{ url_for('student', sport=sport, location=location_filter) }}"
+         class="filter-pill {% if sport_filter == sport %}active{% endif %}">{{ sport }}</a>
+    {% endfor %}
+  </div>
+
+  <form method="GET" action="{{ url_for('student') }}" style="display:flex; gap:0.5rem; align-items:flex-end;">
+    <input type="hidden" name="sport" value="{{ sport_filter }}">
+    <div style="flex:1;">
+      <label for="location">Filter by Location</label>
+      <select name="location" id="location" onchange="this.form.submit()">
+        <option value="">All locations</option>
+        {% for loc in locations %}
+          <option value="{{ loc }}" {% if location_filter == loc %}selected{% endif %}>{{ loc }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+</div>
+
+{% if coaches %}
+  <div class="coach-grid">
+    {% for c in coaches %}
+      <div class="coach-card coach-card--clickable" onclick="toggleContact('contact-{{ c.id }}')" role="button" tabindex="0"
+           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleContact('contact-{{ c.id }}')}">
+        {% if c.image_url %}
+          <img src="{{ c.image_url }}" alt="{{ c.full_name }}"
+               style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);margin-bottom:0.5rem;">
+        {% else %}
+          <div class="avatar">{{ (c.full_name or '?')[0]|upper }}</div>
+        {% endif %}
+        <h3>{{ c.full_name }}</h3>
+        <div class="meta">📍 {{ c.location or '—' }} • {{ c.experience_years }} yrs exp</div>
+        <div style="margin-bottom:0.75rem;">
+          <span class="badge">{{ c.category }}</span>
+        </div>
+        <p style="font-size:0.9rem; color: var(--text-dim); margin-bottom: 0.75rem;">
+          {{ c.bio or 'No bio yet.' }}
+        </p>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong style="color: var(--gold);">UGX {{ '{:,}'.format(c.hourly_rate) }}/hr</strong>
+          <span style="font-size:0.8rem; color: var(--text-dim);">👆 Tap for contact</span>
+        </div>
+
+        <!-- Hidden contact panel — revealed when student taps the card -->
+        <div id="contact-{{ c.id }}" class="contact-panel" style="display:none;">
+          <hr style="border:none;border-top:1px solid rgba(212,175,55,0.3);margin:0.75rem 0;">
+          <p style="margin:0.25rem 0;color:var(--gold);font-weight:600;">📞 Coach Contact</p>
+          {% if c.phone %}
+            <p style="margin:0.25rem 0;">
+              <a href="tel:{{ c.phone }}" onclick="event.stopPropagation()"
+                 style="color:#fff;text-decoration:none;font-size:1.05rem;">{{ c.phone }}</a>
+            </p>
+            <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap;">
+              <a href="tel:{{ c.phone }}" onclick="event.stopPropagation()" class="btn btn-sm">📞 Call</a>
+              <a href="https://wa.me/{{ c.phone|replace('+','')|replace(' ','') }}"
+                 target="_blank" rel="noopener" onclick="event.stopPropagation()" class="btn btn-sm">💬 WhatsApp</a>
+              <a href="sms:{{ c.phone }}" onclick="event.stopPropagation()" class="btn btn-sm">✉️ SMS</a>
+            </div>
+          {% else %}
+            <p style="color:var(--text-dim);">No phone number provided.</p>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <script>
+    function toggleContact(id){
+      var el = document.getElementById(id);
+      if(!el) return;
+      el.style.display = (el.style.display === 'none' || !el.style.display) ? 'block' : 'none';
+    }
+  </script>
+{% else %}
+  <div class="card empty">
+    <div class="icon">🔍</div>
+    <h3>No coaches found</h3>
+    <p>Try a different sport or location filter.</p>
+  </div>
+{% endif %}
+{% endblock %}
