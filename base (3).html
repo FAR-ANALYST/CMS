@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}GetMyCoach Uganda{% endblock %}</title>
+  <meta name="description" content="Find verified sports coaches across Uganda. Football, basketball, swimming, athletics and more." />
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+  <nav class="nav">
+    <a href="{{ url_for('student') }}" class="brand">GetMyCoach 🇺🇬</a>
+    <div class="links">
+      <a href="{{ url_for('student') }}" class="{% if request.endpoint == 'student' %}active{% endif %}">Find a coach</a>
+      {% if current_user %}
+        {% if current_user['role'] == 'coach' %}
+          <a href="{{ url_for('coach') }}" class="{% if request.endpoint == 'coach' %}active{% endif %}">Coach dashboard</a>
+        {% endif %}
+        {% if current_user['role'] == 'admin' %}
+          <a href="{{ url_for('admin') }}" class="{% if request.endpoint == 'admin' %}active{% endif %}">Admin</a>
+        {% endif %}
+        <a href="{{ url_for('logout') }}">Log out</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">Log in</a>
+        <a href="{{ url_for('signup') }}">Sign up</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <main class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, msg in messages %}
+        <div class="flash flash-{{ category }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    {% if forbidden %}
+      <div class="card"><h2>403 — Forbidden</h2><p>You don't have access to this page.</p></div>
+    {% elif notfound %}
+      <div class="card"><h2>404 — Not found</h2><p>That page doesn't exist.</p></div>
+    {% else %}
+      {% block content %}{% endblock %}
+    {% endif %}
+  </main>
+</body>
+</html>

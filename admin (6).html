@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Admin — GetMyCoach{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>⚡ Quick add coach (publishes immediately)</h2>
+  <form method="post" enctype="multipart/form-data">
+    <div class="row">
+      <div><label>Full name *</label><input name="full_name" required /></div>
+      <div><label>Phone</label><input name="phone" /></div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Sport</label>
+        <select name="category">
+          <option value="">Select…</option>
+          {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+        </select>
+      </div>
+      <div><label>Location</label><input name="location" placeholder="e.g. Jinja" /></div>
+    </div>
+    <div class="row">
+      <div><label>Experience (years)</label><input name="experience_years" type="number" min="0" value="0" /></div>
+      <div><label>Hourly rate (UGX)</label><input name="hourly_rate" type="number" min="0" step="1000" value="0" /></div>
+    </div>
+    <label>Bio</label><textarea name="bio"></textarea>
+    <label>Photo</label><input type="file" name="image" accept="image/*" />
+    <button class="btn btn-primary" type="submit">Add coach (live)</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="section-title">
+    <h2>🕒 Pending approvals</h2>
+    <span class="muted">{{ pending|length }} waiting</span>
+  </div>
+
+  {% if pending|length == 0 %}
+    <p class="muted">Nothing pending. 🎉</p>
+  {% else %}
+    <div class="grid cols-2">
+      {% for s in pending %}
+        <div class="coach-card">
+          <div class="photo">
+            {% if s['image_url'] %}<img src="{{ s['image_url'] }}" alt="{{ s['full_name'] }}" />
+            {% else %}{{ (s['full_name'] or '?')[0]|upper }}{% endif %}
+          </div>
+          <div class="body">
+            <div class="name">{{ s['full_name'] }}</div>
+            <span class="badge badge-warning">{{ s['payment_status']|title }}</span>
+            <div class="meta">{{ s['category'] or '—' }} · {{ s['location'] or '—' }}</div>
+            {% if s['phone'] %}<div class="meta">📞 {{ s['phone'] }}</div>{% endif %}
+            {% if s['bio'] %}<div class="bio">{{ s['bio'] }}</div>{% endif %}
+          </div>
+          <div class="footer">
+            <form method="post" action="{{ url_for('admin_approve', sub_id=s['id']) }}">
+              <button class="btn btn-sm btn-success" type="submit">✓ Approve</button>
+            </form>
+            <form method="post" action="{{ url_for('admin_delete', sub_id=s['id']) }}"
+                  onsubmit="return confirm('Delete this submission?')">
+              <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="section-title">
+    <h2>✅ Live coaches</h2>
+    <span class="muted">{{ live|length }} live</span>
+  </div>
+
+  {% if live|length == 0 %}
+    <p class="muted">No live coaches yet.</p>
+  {% else %}
+    <div class="grid cols-3">
+      {% for s in live %}
+        <div class="coach-card">
+          <div class="photo">
+            {% if s['image_url'] %}<img src="{{ s['image_url'] }}" alt="{{ s['full_name'] }}" />
+            {% else %}{{ (s['full_name'] or '?')[0]|upper }}{% endif %}
+          </div>
+          <div class="body">
+            <div class="name">{{ s['full_name'] }}</div>
+            <span class="badge badge-success">Live</span>
+            <div class="meta">{{ s['category'] or '—' }} · {{ s['location'] or '—' }}</div>
+            {% if s['phone'] %}<div class="meta">📞 {{ s['phone'] }}</div>{% endif %}
+          </div>
+          <div class="footer">
+            {% if s['hourly_rate'] %}<span class="rate">UGX {{ '{:,}'.format(s['hourly_rate']) }}/hr</span>{% endif %}
+            <form method="post" action="{{ url_for('admin_delete', sub_id=s['id']) }}"
+                  onsubmit="return confirm('Remove this coach?')">
+              <button class="btn btn-sm btn-danger" type="submit">Remove</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

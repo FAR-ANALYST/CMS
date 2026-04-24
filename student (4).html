@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Find a coach — GetMyCoach{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Find a verified coach in Uganda</h2>
+  <form method="get" action="{{ url_for('student') }}" class="row">
+    <div>
+      <label for="category">Sport</label>
+      <select id="category" name="category">
+        <option value="">All sports</option>
+        {% for c in categories %}
+          <option value="{{ c }}" {% if c == category %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="location">Location (e.g. Kampala)</label>
+      <input id="location" name="location" type="text" value="{{ location }}" placeholder="Town or district" />
+    </div>
+    <div style="grid-column: 1 / -1; display: flex; gap: 10px;">
+      <button class="btn btn-primary" type="submit">Search</button>
+      <a class="btn" href="{{ url_for('student') }}">Clear</a>
+    </div>
+  </form>
+</div>
+
+{% if coaches|length == 0 %}
+  <div class="card"><p class="muted">No coaches match your filters yet. Try clearing them.</p></div>
+{% else %}
+  <div class="grid cols-3">
+    {% for c in coaches %}
+      <div class="coach-card">
+        <div class="photo">
+          {% if c['image_url'] %}
+            <img src="{{ c['image_url'] }}" alt="{{ c['full_name'] }}" />
+          {% else %}
+            {{ (c['full_name'] or '?')[0]|upper }}
+          {% endif %}
+        </div>
+        <div class="body">
+          <div class="name">{{ c['full_name'] }}</div>
+          {% if c['category'] %}<span class="badge badge-warning">{{ c['category'] }}</span>{% endif %}
+          {% if c['location'] %}<div class="meta">📍 {{ c['location'] }}</div>{% endif %}
+          {% if c['experience_years'] %}<div class="meta">🎯 {{ c['experience_years'] }} yrs experience</div>{% endif %}
+          {% if c['bio'] %}<div class="bio">{{ c['bio'] }}</div>{% endif %}
+
+          {% if c['phone'] %}
+          <div class="contact-actions" id="contact-{{ c['id'] }}">
+            <a class="btn btn-sm btn-primary" href="tel:{{ c['phone'] }}">📞 Call</a>
+            <a class="btn btn-sm" href="https://wa.me/{{ c['phone']|replace('+','')|replace(' ','') }}" target="_blank" rel="noopener">💬 WhatsApp</a>
+            <a class="btn btn-sm" href="sms:{{ c['phone'] }}">✉️ SMS</a>
+          </div>
+          {% endif %}
+        </div>
+        <div class="footer">
+          {% if c['hourly_rate'] %}
+            <span class="rate">UGX {{ '{:,}'.format(c['hourly_rate']) }}/hr</span>
+          {% else %}
+            <span class="muted">Rate on request</span>
+          {% endif %}
+          {% if c['phone'] %}
+            <button type="button" class="btn btn-sm btn-primary" onclick="toggleContact({{ c['id'] }})">Contact</button>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<script>
+  function toggleContact(id) {
+    var el = document.getElementById('contact-' + id);
+    if (el) el.classList.toggle('open');
+  }
+</script>
+{% endblock %}

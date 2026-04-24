@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Sign up — GetMyCoach{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 480px; margin: 40px auto;">
+  <h2>Create your account</h2>
+  <form method="post">
+    <label>Full name</label>
+    <input name="full_name" />
+    <label>Email</label>
+    <input name="email" type="email" required autocomplete="email" />
+    <label>Password (min 6 chars)</label>
+    <input name="password" type="password" required autocomplete="new-password" />
+
+    <label>I am a…</label>
+    <div style="display: flex; gap: 16px; margin-bottom: 12px;">
+      <label style="display:flex;align-items:center;gap:6px;color:var(--text);">
+        <input type="radio" name="role" value="student" checked style="width:auto;margin:0;" /> Student
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;color:var(--text);">
+        <input type="radio" name="role" value="coach" style="width:auto;margin:0;" /> Coach
+      </label>
+    </div>
+
+    <button class="btn btn-primary btn-block" type="submit">Create account</button>
+  </form>
+  <p class="muted" style="margin-top: 14px;">
+    Already have an account? <a href="{{ url_for('login') }}">Log in</a>.
+  </p>
+</div>
+{% endblock %}
