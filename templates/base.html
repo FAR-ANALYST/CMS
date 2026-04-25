@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Get My Coach Uganda{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+<nav class="topnav">
+    <a href="{{ url_for('home') }}" class="brand">🏆 Get My Coach <span>Uganda</span></a>
+    <div class="nav-links">
+        <a href="{{ url_for('home') }}">Home</a>
+        <a href="{{ url_for('coaches') }}" class="nav-cta">Looking for a coach?</a>
+        {% if current_user %}
+            {% if is_admin %}<a href="{{ url_for('admin') }}" class="nav-admin">Admin</a>{% endif %}
+            {% if current_user.role in ['coach','admin'] %}<a href="{{ url_for('coach_dashboard') }}">My Profile</a>{% endif %}
+            <a href="{{ url_for('logout') }}" class="nav-logout">Logout</a>
+        {% else %}
+            <a href="{{ url_for('login') }}">Login</a>
+            <a href="{{ url_for('signup') }}" class="nav-cta">Sign up</a>
+        {% endif %}
+    </div>
+</nav>
+
+<main class="container">
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+        {% if msgs %}
+            <div class="flashes">
+            {% for cat, m in msgs %}
+                <div class="flash flash-{{ cat }}">{{ m }}</div>
+            {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+    <p>© 2026 Get My Coach Uganda · Powered by FAROUK Systems</p>
+</footer>
+
+<div id="lightbox" onclick="this.style.display='none'"><img src="" alt=""></div>
+<script>
+document.addEventListener('click', e => {
+    if (e.target.matches('.zoomable')) {
+        const lb = document.getElementById('lightbox');
+        lb.querySelector('img').src = e.target.src;
+        lb.style.display = 'flex';
+    }
+});
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

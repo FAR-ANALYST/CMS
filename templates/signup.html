@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Sign up — Get My Coach{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+    <div class="auth-card">
+        <h1>Create your account</h1>
+        <p class="sub">Join as a student or a coach</p>
+
+        <form method="POST" action="{{ url_for('signup') }}">
+            <label>I am a…</label>
+            <select name="role" required>
+                <option value="student">Student — looking for a coach</option>
+                <option value="coach">Coach — list my services</option>
+            </select>
+
+            <label>Username</label>
+            <input name="username" required>
+
+            <label>Email</label>
+            <input type="email" name="email" required>
+
+            <label>Password</label>
+            <input type="password" name="password" minlength="6" required>
+
+            <button type="submit" class="btn-primary">Sign up</button>
+        </form>
+
+        <div class="links">
+            Already have an account? <a href="{{ url_for('login') }}">Log in</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

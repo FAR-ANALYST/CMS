@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Welcome — Get My Coach{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+    <div class="auth-card" style="text-align:center;">
+        <h1>🏆 Get My Coach</h1>
+        <p class="sub">Expert Training. Elite Results. Uganda's home of certified sports coaches.</p>
+
+        <div style="display:flex; flex-direction:column; gap:12px; margin-top:24px;">
+            <a href="{{ url_for('coaches') }}" class="btn-primary">🔍 Looking for a Coach?</a>
+            <a href="{{ url_for('login') }}" class="btn-secondary">Login</a>
+            <a href="{{ url_for('signup') }}" class="btn-secondary">Create Account</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}Admin — Get My Coach{% endblock %}
+{% block content %}
+
+<h1>Admin Dashboard</h1>
+<p style="color:var(--muted); margin-bottom:30px;">
+    Approve coach submissions, add coaches directly, and post live events.
+</p>
+
+<!-- ══ ADD COACH DIRECTLY ══ -->
+<section class="panel" style="margin-bottom:30px; border-left:4px solid var(--red);">
+    <h3 style="color:var(--red); margin-top:0;">➕ Add Coach Directly (Goes Live Immediately)</h3>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="action" value="quick_add_coach">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div>
+                <label>Full Name *</label>
+                <input name="full_name" required>
+            </div>
+            <div>
+                <label>Phone</label>
+                <input name="phone">
+            </div>
+            <div>
+                <label>Sport *</label>
+                <select name="category" required>
+                    <option value="" disabled selected>— Select —</option>
+                    {% for s in SPORTS %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Location *</label>
+                <input name="location" required>
+            </div>
+            <div>
+                <label>Profile Photo</label>
+                <input type="file" name="image" accept="image/*">
+            </div>
+            <div>
+                <label>Bio</label>
+                <input name="bio">
+            </div>
+        </div>
+        <button type="submit" class="btn-primary" style="margin-top:16px; width:100%;">
+            Publish Coach Immediately
+        </button>
+    </form>
+</section>
+
+<!-- ══ CREATE EVENT ══ -->
+<section class="panel" style="margin-bottom:30px; border-left:4px solid var(--blue);">
+    <h3 style="color:var(--blue); margin-top:0;">📸 Post a Live Event</h3>
+    <p style="color:var(--muted); font-size:.85rem; margin-top:0;">
+        Upload one or more photos. If multiple, they crossfade every 2 seconds on the home page.
+    </p>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="action" value="create_event">
+        <div style="display:grid; grid-template-columns:2fr 1fr; gap:14px;">
+            <div>
+                <label>Event Title *</label>
+                <input name="title" required>
+            </div>
+            <div>
+                <label>Event Date</label>
+                <input type="date" name="event_date">
+            </div>
+        </div>
+        <label>Location</label>
+        <input name="location" placeholder="e.g. Mandela National Stadium, Kampala">
+
+        <label>Description</label>
+        <textarea name="description" rows="3"></textarea>
+
+        <label>Photos (select multiple — Ctrl/Cmd+click)</label>
+        <input type="file" name="images" accept="image/*" multiple>
+
+        <button type="submit" class="btn-primary" style="margin-top:16px; width:100%;">
+            Publish Event
+        </button>
+    </form>
+</section>
+
+<!-- ══ PENDING APPROVALS ══ -->
+<div class="section-title">
+    <h2>⏳ Pending Coach Approvals</h2>
+    <span class="count">{{ pending|length }} awaiting</span>
+</div>
+
+{% if pending %}
+<div class="coach-grid" style="margin-bottom:40px;">
+    {% for c in pending %}
+    <div class="coach-card" style="border-color:#fbbf24;">
+        <img src="{{ c.image_url or 'https://ui-avatars.com/api/?background=11214d&color=fbbf24&size=300&name=' + (c.full_name or 'C')|urlencode }}"
+             class="avatar zoomable">
+        <h3>{{ c.full_name or '(no name)' }}</h3>
+        <p class="meta">{{ c.category or '—' }} · {{ c.location or '—' }}</p>
+        <p style="color:var(--muted); font-size:.8rem;">📞 {{ c.phone or '—' }}</p>
+        {% if c.bio %}<p style="color:var(--text); font-size:.8rem; font-style:italic;">"{{ c.bio[:100] }}{% if c.bio|length > 100 %}…{% endif %}"</p>{% endif %}
+        <div class="actions">
+            <form method="POST" action="{{ url_for('admin_approve', cid=c.id) }}" style="flex:1;">
+                <button class="btn-primary" style="width:100%;">✅ Approve</button>
+            </form>
+            <form method="POST" action="{{ url_for('admin_delete_coach', cid=c.id) }}" style="flex:1;"
+                  onsubmit="return confirm('Delete {{ c.full_name }}?')">
+                <button class="btn-danger" style="width:100%;">Delete</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty" style="margin-bottom:40px;">No coaches awaiting approval.</div>
+{% endif %}
+
+<!-- ══ LIVE COACHES ══ -->
+<div class="section-title">
+    <h2>✅ Live Coaches</h2>
+    <span class="count">{{ live|length }} active</span>
+</div>
+
+<div class="panel" style="padding:0; overflow:hidden;">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Name</th><th>Sport</th><th>Location</th><th>Phone</th><th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in live %}
+            <tr>
+                <td>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <img src="{{ c.image_url or 'https://ui-avatars.com/api/?background=11214d&color=4cc9f0&size=60&name=' + (c.full_name or 'C')|urlencode }}"
+                             style="width:36px; height:36px; border-radius:8px; object-fit:cover;">
+                        <span style="font-weight:600;">{{ c.full_name }}</span>
+                    </div>
+                </td>
+                <td><span class="pill pill-live">{{ c.category or '—' }}</span></td>
+                <td style="color:var(--muted);">{{ c.location or '—' }}</td>
+                <td style="color:var(--muted);">{{ c.phone or '—' }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('admin_delete_coach', cid=c.id) }}"
+                          onsubmit="return confirm('Remove {{ c.full_name }}?')">
+                        <button class="btn-danger" style="padding:6px 12px; font-size:.75rem;">Remove</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" style="text-align:center; padding:30px; color:var(--muted);">No live coaches yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- ══ EVENTS LIST ══ -->
+<div class="section-title" style="margin-top:40px;">
+    <h2>📅 Events</h2>
+    <span class="count">{{ events|length }} total</span>
+</div>
+
+{% if events %}
+<div class="coach-grid">
+    {% for ev in events %}
+    <div class="coach-card">
+        {% if ev.images and ev.images|length > 0 %}
+        <img src="{{ ev.images[0] }}" class="avatar zoomable">
+        {% endif %}
+        <h3>{{ ev.title }}</h3>
+        <p class="meta">
+            {% if ev.is_active %}<span class="pill pill-live">Active</span>{% else %}<span class="pill pill-incomplete">Hidden</span>{% endif %}
+            · {{ ev.images|length }} photo{{ 's' if ev.images|length != 1 }}
+        </p>
+        {% if ev.location %}<p style="font-size:.8rem; color:var(--muted);">📍 {{ ev.location }}</p>{% endif %}
+        <div class="actions">
+            <form method="POST" action="{{ url_for('admin_toggle_event', eid=ev.id) }}" style="flex:1;">
+                <button class="btn-secondary" style="width:100%;">{{ 'Hide' if ev.is_active else 'Show' }}</button>
+            </form>
+            <form method="POST" action="{{ url_for('admin_delete_event', eid=ev.id) }}" style="flex:1;"
+                  onsubmit="return confirm('Delete event?')">
+                <button class="btn-danger" style="width:100%;">Delete</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty">No events yet — post one above.</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Find a Coach — Get My Coach{% endblock %}
+{% block content %}
+
+<div class="section-title">
+    <h2>🏆 Verified Coaches</h2>
+    <span class="count">
+        {% if searched %}
+            {{ coaches|length }} result{{ 's' if coaches|length != 1 }}
+        {% else %}
+            Showing first {{ preview_limit }} of {{ total_live }} — search to see more
+        {% endif %}
+    </span>
+</div>
+
+<form method="GET" class="filters">
+    <div>
+        <label>Sport</label>
+        <select name="category">
+            <option value="">All sports</option>
+            {% for s in SPORTS %}
+            <option value="{{ s }}" {% if cat == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label>Location</label>
+        <input name="location" value="{{ loc }}" placeholder="District / town (e.g. Kampala)">
+    </div>
+    <button type="submit" class="btn-primary">Search</button>
+</form>
+
+{% if coaches %}
+<div class="coach-grid">
+    {% for c in coaches %}
+    <div class="coach-card">
+        <img src="{{ c.image_url or 'https://ui-avatars.com/api/?background=11214d&color=4cc9f0&size=300&name=' + (c.full_name or 'Coach')|urlencode }}"
+             class="avatar zoomable" alt="{{ c.full_name }}">
+        <h3>{{ c.full_name }}</h3>
+        <p class="meta">{{ c.category or '—' }} · {{ c.location or '—' }}</p>
+        <div class="actions">
+            <a href="tel:{{ c.phone }}" class="btn-primary">Call</a>
+            <button onclick="copyPhone('{{ c.phone }}')" class="btn-secondary">Copy</button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if not searched and total_live > preview_limit %}
+<p style="text-align:center; margin-top:30px; color:var(--muted);">
+    👆 Use the search above to find more coaches by sport or location.
+</p>
+{% endif %}
+
+{% else %}
+<div class="empty">
+    <p>No coaches found{% if searched %} for your search{% endif %}.</p>
+    {% if searched %}<a href="{{ url_for('coaches') }}" class="btn-secondary" style="margin-top:14px;">Clear filters</a>{% endif %}
+</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+function copyPhone(num) {
+    navigator.clipboard.writeText(num);
+    alert("Phone copied: " + num);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Login — Get My Coach{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+    <div class="auth-card">
+        <h1>Welcome back</h1>
+        <p class="sub">Sign in to continue</p>
+
+        <form method="POST" action="{{ url_for('login') }}">
+            <label>Username or Email</label>
+            <input name="login_id" required autofocus>
+
+            <label>Password</label>
+            <input type="password" name="password" required>
+
+            <button type="submit" class="btn-primary">Log in</button>
+        </form>
+
+        <div class="links">
+            New here? <a href="{{ url_for('signup') }}">Create an account</a><br><br>
+            <a href="{{ url_for('home') }}" style="color:var(--muted);">← Back to home</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

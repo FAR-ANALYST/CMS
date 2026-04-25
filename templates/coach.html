@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}My Profile — Get My Coach{% endblock %}
+{% block content %}
+
+<h1>Coach Dashboard</h1>
+<p style="color:var(--muted); margin-bottom:24px;">
+    Fill in your details and submit for admin approval. Your profile goes live once payment is confirmed.
+</p>
+
+{% if profile %}
+    {% if profile.is_verified %}
+        <div class="panel" style="border-left:4px solid #22c55e; margin-bottom:24px;">
+            <h3 style="color:#4ade80; margin:0;">✅ LIVE — Visible to Students</h3>
+            <p style="color:var(--muted); font-size:.85rem; margin:6px 0 0;">
+                Any update you make will reset your status for re-approval.
+            </p>
+        </div>
+    {% elif profile.payment_status == 'submitted' %}
+        <div class="panel" style="border-left:4px solid #fbbf24; margin-bottom:24px;">
+            <h3 style="color:#fbbf24; margin:0;">⏳ UNDER REVIEW</h3>
+            <p style="color:var(--muted); font-size:.85rem; margin:6px 0 0;">
+                Awaiting admin approval. Send payment of UGX 20,000 to MTN <strong>0789 268 324</strong>
+                or Airtel <strong>0757 307 541</strong>.
+            </p>
+        </div>
+    {% else %}
+        <div class="panel" style="border-left:4px solid var(--muted); margin-bottom:24px;">
+            <h3 style="color:var(--muted); margin:0;">📝 INCOMPLETE</h3>
+            <p style="color:var(--muted); font-size:.85rem; margin:6px 0 0;">
+                Submit your profile below.
+            </p>
+        </div>
+    {% endif %}
+{% endif %}
+
+<section class="panel">
+    <form method="POST" action="{{ url_for('coach_submit') }}" enctype="multipart/form-data">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">
+            <div>
+                <label>Full Professional Name</label>
+                <input name="full_name" required value="{{ profile.full_name if profile else '' }}">
+
+                <label>Contact Phone</label>
+                <input name="phone" value="{{ profile.phone if profile else '' }}" placeholder="+256...">
+
+                <label>Sporting Category</label>
+                <select name="category" required>
+                    <option value="" disabled {% if not profile or not profile.category %}selected{% endif %}>— Select —</option>
+                    {% for s in SPORTS %}
+                    <option value="{{ s }}" {% if profile and profile.category == s %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label>Primary Training Location</label>
+                <input name="location" value="{{ profile.location if profile else '' }}" placeholder="Kampala">
+
+                <label>Profile Photo</label>
+                <input type="file" name="image" accept="image/*">
+                <input type="hidden" name="existing_image" value="{{ profile.image_url if profile else '' }}">
+
+                {% if profile and profile.image_url %}
+                <div style="margin-top:10px;">
+                    <img src="{{ profile.image_url }}" class="zoomable"
+                         style="width:80px; height:80px; object-fit:cover; border-radius:10px; border:2px solid var(--border); cursor:zoom-in;">
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <label>Bio / Coaching Experience</label>
+        <textarea name="bio" rows="5" placeholder="Tell students about your background and coaching style…">{{ profile.bio if profile else '' }}</textarea>
+
+        <div style="background:rgba(76,201,240,.06); border:1px solid var(--border); border-radius:10px; padding:16px; margin-top:18px; text-align:center;">
+            <p style="color:var(--blue); font-weight:700; font-size:.9rem; margin:0 0 4px;">
+                Listing Fee: UGX 20,000 (one-time)
+            </p>
+            <p style="color:var(--muted); font-size:.8rem; margin:0;">
+                MTN: <strong style="color:var(--text);">0789 268 324</strong> &nbsp;|&nbsp;
+                Airtel: <strong style="color:var(--text);">0757 307 541</strong>
+            </p>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width:100%; margin-top:22px; padding:14px;">
+            Submit Profile for Approval
+        </button>
+    </form>
+</section>
+
+{% endblock %}

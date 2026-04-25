@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} — Get My Coach{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+    <div class="auth-card" style="text-align:center;">
+        <h1>{{ code }}</h1>
+        <p class="sub">{{ message }}</p>
+        <a class="btn-primary" href="{{ url_for('home') }}">Back to home</a>
+    </div>
+</div>
+{% endblock %}

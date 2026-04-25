@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Home — Get My Coach Uganda{% endblock %}
+{% block content %}
+
+<section class="hero">
+    <h1>Find Your Champion Coach</h1>
+    <p>Uganda's premier directory of verified sports coaches. Athletics, Football, Chess, Swimming and more.</p>
+    <a href="{{ url_for('coaches') }}" class="hero-cta">🔍 Looking for a coach?</a>
+</section>
+
+<section class="events-section">
+    <div class="section-title">
+        <h2>🔴 Live Events</h2>
+        <span class="count">{{ events|length }} ongoing</span>
+    </div>
+
+    {% if events %}
+        {% for ev in events %}
+        <article class="event-card">
+            {% if ev.images and ev.images|length > 0 %}
+            <div class="event-carousel" data-count="{{ ev.images|length }}">
+                <span class="badge-live">● LIVE</span>
+                {% for img in ev.images %}
+                <img src="{{ img }}" class="{% if loop.first %}active{% endif %}" alt="{{ ev.title }}">
+                {% endfor %}
+            </div>
+            {% endif %}
+            <div class="event-body">
+                <h3>{{ ev.title }}</h3>
+                <div class="event-meta">
+                    {% if ev.location %}📍 {{ ev.location }}{% endif %}
+                    {% if ev.event_date %} &nbsp;·&nbsp; 📅 {{ ev.event_date }}{% endif %}
+                </div>
+                {% if ev.description %}<p>{{ ev.description }}</p>{% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    {% else %}
+        <div class="empty">No live events right now. Check back soon!</div>
+    {% endif %}
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Crossfade carousels every 2 seconds
+document.querySelectorAll('.event-carousel').forEach(car => {
+    const imgs = car.querySelectorAll('img');
+    if (imgs.length < 2) return;
+    let i = 0;
+    setInterval(() => {
+        imgs[i].classList.remove('active');
+        i = (i + 1) % imgs.length;
+        imgs[i].classList.add('active');
+    }, 2000);
+});
+</script>
+{% endblock %}
