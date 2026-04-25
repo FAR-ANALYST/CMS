@@ -382,13 +382,14 @@ def admin():
 
         if action == "create_event":
             event_row = query(
-                """INSERT INTO events (title, description, location, event_date, is_active)
-                   VALUES (%s,%s,%s,%s,TRUE) RETURNING id""",
+               """INSERT INTO events (title, description, location, event_date, end_date, is_active)
+   VALUES (%s,%s,%s,%s,%s,TRUE) RETURNING id""",
                 (
-                    request.form.get("title", "").strip(),
-                    request.form.get("description", "").strip(),
-                    request.form.get("location", "").strip(),
-                    request.form.get("event_date") or None,
+                    request.form["title"].strip(),
+    request.form.get("description", "").strip(),
+    request.form.get("location", "").strip(),
+    request.form.get("event_date") or None,
+    request.form.get("end_date") or request.form.get("event_date") or None,
                 ),
                 commit=True,
             )
