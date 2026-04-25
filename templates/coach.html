@@ -34,7 +34,7 @@
 {% endif %}
 
 <section class="panel">
-    <form method="POST" action="{{ url_for('coach_submit') }}" enctype="multipart/form-data">
+    <form method="POST" action="/coach/submit" enctype="multipart/form-data">
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">
             <div>
                 <label>Full Professional Name</label>
@@ -57,7 +57,7 @@
                 <input name="location" value="{{ profile.location if profile else '' }}" placeholder="Kampala">
 
                 <label>Profile Photo</label>
-                <input type="file" name="image" accept="image/*">
+                <input type="file" name="image" accept="image/*" required>
                 <input type="hidden" name="existing_image" value="{{ profile.image_url if profile else '' }}">
 
                 {% if profile and profile.image_url %}
