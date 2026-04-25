@@ -306,7 +306,7 @@ def coach_submit():
 
     data = request.form
     img_url = None
-    # ... your image upload logic here ...
+    # ... your existing image upload logic ...
 
     query(
         """INSERT INTO coaches
@@ -319,31 +319,6 @@ def coach_submit():
     )
 
     flash("Coach submitted successfully!", "success")
-    return redirect(url_for("coach_dashboard"))
-
-
-        query(
-            """UPDATE coaches SET
-                 full_name=%s, phone=%s, category=%s, location=%s, bio=%s,
-                 image_url=%s, is_verified=FALSE, payment_status='submitted',
-                 updated_at=NOW()
-               WHERE user_id=%s""",
-            (data["full_name"], data["phone"], data["category"], data["location"],
-             data["bio"], img_url, user["id"]),
-            commit=True,
-        )
-    else:
-        query(
-            """INSERT INTO coaches
-                 (user_id, full_name, phone, category, location, bio,
-                  image_url, is_verified, payment_status)
-               VALUES (%s,%s,%s,%s,%s,%s,%s,FALSE,'submitted')""",
-            (user["id"], data["full_name"], data["phone"], data["category"],
-             data["location"], data["bio"], img_url),
-            commit=True,
-        )
-
-    flash("Profile submitted for admin approval.", "success")
     return redirect(url_for("coach_dashboard"))
 
 
