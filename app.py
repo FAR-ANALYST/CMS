@@ -131,8 +131,8 @@ def inject_globals():
 # ════════════════════════════════════════════════════════════════
 @app.route("/")
 def home():
-    """Landing — live events + 'Looking for a coach?' tab."""
-    events = query(
+    """Landing — events with auto status (upcoming/live/completed)."""
+    rows = query(
         """SELECT e.*,
                   COALESCE(json_agg(ei.image_url ORDER BY ei.id)
                            FILTER (WHERE ei.image_url IS NOT NULL),
@@ -141,9 +141,29 @@ def home():
              LEFT JOIN event_images ei ON ei.event_id = e.id
             WHERE e.is_active = TRUE
             GROUP BY e.id
-            ORDER BY e.created_at DESC"""
+            ORDER BY e.event_date ASC NULLS LAST, e.created_at DESC"""
     )
+
+    from datetime import datetime, timezone, timedelta
+    today = (datetime.now(timezone.utc) + timedelta(hours=3)).date()  # Uganda EAT
+
+    events = []
+    for ev in rows:
+        ev = dict(ev)
+        start = ev.get("event_date")
+        end   = ev.get("end_date") or start
+        if not start:
+            ev["status"] = "upcoming"
+        elif today < start:
+            ev["status"] = "upcoming"
+        elif start <= today <= end:
+            ev["status"] = "live"
+        else:
+            ev["status"] = "completed"
+        events.append(ev)
+
     return render_template("home.html", events=events)
+
 
 
 @app.route("/coaches")
