@@ -304,18 +304,9 @@ def coach_submit():
     if not user:
         return redirect(url_for("login"))
 
-    data = {
-        "full_name": request.form.get("full_name", "").strip(),
-        "phone":     request.form.get("phone", "").strip(),
-        "category":  request.form.get("category", "").strip(),
-        "location":  request.form.get("location", "").strip(),
-        "bio":       request.form.get("bio", "").strip(),
-    }
-    img_url = ""
-    if "image" in request.files:
-        new_url = upload_to_supabase(request.files["image"], folder="coaches")
-        if new_url:
-            img_url = new_url
+    data = request.form
+    img_url = None
+    # ... your image upload logic here ...
 
     query(
         """INSERT INTO coaches
@@ -327,7 +318,7 @@ def coach_submit():
         commit=True,
     )
 
-    flash("Coach submitted for admin approval.", "success")
+    flash("Coach submitted successfully!", "success")
     return redirect(url_for("coach_dashboard"))
 
 
