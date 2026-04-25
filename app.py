@@ -305,7 +305,7 @@ def coach_submit():
         return redirect(url_for("login"))
 
     data = request.form
-    img_url = None
+    img_url = upload_to_supabase(request.files.get("image"), folder="coaches")
     # ... your existing image upload logic ...
 
     query(
