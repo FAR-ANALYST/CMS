@@ -298,7 +298,6 @@ def coach_dashboard():
     )
     return render_template("coach.html", profile=profile)
 
-
 @app.route("/coach/submit", methods=["POST"])
 def coach_submit():
     user = current_user()
@@ -312,14 +311,26 @@ def coach_submit():
         "location":  request.form.get("location", "").strip(),
         "bio":       request.form.get("bio", "").strip(),
     }
-    img_url = request.form.get("existing_image", "")
+    img_url = ""
     if "image" in request.files:
         new_url = upload_to_supabase(request.files["image"], folder="coaches")
         if new_url:
             img_url = new_url
 
-    existing = query("SELECT id FROM coaches WHERE user_id = %s", (user["id"],), one=True)
-    if existing:
+    query(
+        """INSERT INTO coaches
+             (user_id, full_name, phone, category, location, bio,
+              image_url, is_verified, payment_status)
+           VALUES (%s,%s,%s,%s,%s,%s,%s,FALSE,'submitted')""",
+        (user["id"], data["full_name"], data["phone"], data["category"],
+         data["location"], data["bio"], img_url),
+        commit=True,
+    )
+
+    flash("Coach submitted for admin approval.", "success")
+    return redirect(url_for("coach_dashboard"))
+
+
         query(
             """UPDATE coaches SET
                  full_name=%s, phone=%s, category=%s, location=%s, bio=%s,
