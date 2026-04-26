@@ -2,29 +2,139 @@
    Get My Coach Uganda — Navy + Red/Blue Theme
    ════════════════════════════════════════════════════════════════ */
 :root {
-    --navy:        #0a1840;   /* deep navy bg */
-    --navy-2:      #11214d;   /* card panel */
-    --navy-3:      #1a2d6b;   /* hover/border */
-    --red:         #e63946;   /* primary action */
-    --red-dark:    #b8242f;
-    --blue:        #4cc9f0;   /* secondary text/accent */
-    --blue-deep:   #1d4ed8;   /* link blue */
-    --text:        #eaf0ff;
-    --muted:       #9bb0d8;
-    --border:      #1f3578;
-    --radius:      12px;
-    --shadow:      0 8px 30px rgba(0,0,0,.35);
+  /* 70% dark blue, 50% white, 30% rich golden */
+  --navy-900: #0a1f3d;
+  --navy-800: #0f2a55;
+  --navy-700: #163a72;
+  --navy-600: #1e4a8f;
+
+  --gold:     #b8860b;   /* rich golden, not yellow */
+  --gold-soft:#d4a017;
+
+  --white:    #ffffff;
+  --ink:      #ffffff;   /* default text on dark bg */
+  --muted:    rgba(255,255,255,0.75);
+  --border:   rgba(255,255,255,0.18);
+  --surface:  rgba(255,255,255,0.06);   /* glass cards on gradient */
+  --surface-solid: #ffffff;             /* solid white cards */
+  --surface-solid-ink: #0a1f3d;         /* text on white cards */
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
-body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--navy);
-    color: var(--text);
-    line-height: 1.55;
-    min-height: 100vh;
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
 }
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background: linear-gradient(135deg,
+              var(--navy-900) 0%,
+              var(--navy-800) 40%,
+              var(--navy-700) 75%,
+              var(--navy-600) 100%);
+  background-attachment: fixed;     /* gradient stays put while scrolling */
+  min-height: 100vh;
+}
+
+/* Navbar */
+.navbar, nav {
+  background: rgba(10, 31, 61, 0.85);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+}
+.navbar a, nav a {
+  color: var(--white);
+  text-decoration: none;
+  margin-right: 16px;
+  font-weight: 500;
+}
+.navbar a:hover, nav a:hover { color: var(--gold-soft); }
+
+/* Cards / panels */
+.card, .panel, .box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  backdrop-filter: blur(6px);
+  color: var(--white);
+}
+
+/* Solid white card variant (use class="card card-light") */
+.card-light {
+  background: var(--surface-solid);
+  color: var(--surface-solid-ink);
+  border: none;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+}
+
+/* Buttons */
+.btn, button, input[type="submit"] {
+  background: var(--gold);
+  color: #1a1200;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s, transform .05s;
+}
+.btn:hover, button:hover, input[type="submit"]:hover {
+  background: var(--gold-soft);
+}
+.btn:active { transform: translateY(1px); }
+
+.btn-outline {
+  background: transparent;
+  color: var(--gold-soft);
+  border: 1.5px solid var(--gold-soft);
+}
+.btn-outline:hover {
+  background: var(--gold-soft);
+  color: #1a1200;
+}
+
+/* Forms */
+label { display: block; margin: 10px 0 6px; color: var(--white); }
+input[type="text"], input[type="email"], input[type="password"],
+input[type="tel"], input[type="file"], textarea, select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.95);
+  color: #0a1f3d;
+  font-size: 15px;
+}
+input:focus, textarea:focus, select:focus {
+  outline: 2px solid var(--gold-soft);
+  outline-offset: 1px;
+}
+
+/* Headings / links */
+h1, h2, h3 { color: var(--white); }
+a { color: var(--gold-soft); }
+a:hover { text-decoration: underline; }
+
+/* Tables (admin) */
+table { width: 100%; border-collapse: collapse; background: var(--surface-solid); color: var(--surface-solid-ink); border-radius: 10px; overflow: hidden; }
+th, td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+th { background: var(--navy-800); color: var(--white); }
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 16px;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  margin-top: 40px;
+}
+
 
 h1, h2, h3 { color: var(--blue); margin: 0 0 .5em; letter-spacing: .3px; }
 h1 { color: var(--red); }
