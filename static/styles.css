@@ -2,43 +2,43 @@
    Get My Coach Uganda — Navy + Red/Blue Theme
    ════════════════════════════════════════════════════════════════ */
 :root {
-  /* 70% dark blue, 50% white, 30% rich golden */
-  --navy-900: #0a1f3d;
-  --navy-800: #0f2a55;
-  --navy-700: #163a72;
-  --navy-600: #1e4a8f;
+    /* 70% dark blue, 30% rich golden, 50% white */
+    --navy:        #0a1840;
+    --navy-2:      #11214d;
+    --navy-3:      #1a2d6b;
 
-  --gold:     #b8860b;   /* rich golden, not yellow */
-  --gold-soft:#d4a017;
+    --red:         #b8860b;   /* PRIMARY = rich golden */
+    --red-dark:    #8c6508;
 
-  --white:    #ffffff;
-  --ink:      #ffffff;   /* default text on dark bg */
-  --muted:    rgba(255,255,255,0.75);
-  --border:   rgba(255,255,255,0.18);
-  --surface:  rgba(255,255,255,0.06);   /* glass cards on gradient */
-  --surface-solid: #ffffff;             /* solid white cards */
-  --surface-solid-ink: #0a1f3d;         /* text on white cards */
-}
+    --blue:        #ffffff;   /* SECONDARY = white */
+    --blue-deep:   #d4a017;
 
-* { box-sizing: border-box; }
-
-html, body {
-  margin: 0;
-  padding: 0;
-  min-height: 100%;
+    --text:        #ffffff;
+    --muted:       rgba(255,255,255,0.78);
+    --border:      rgba(255,255,255,0.18);
 }
 
 body {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  color: var(--ink);
-  background: linear-gradient(135deg,
-              var(--navy-900) 0%,
-              var(--navy-800) 40%,
-              var(--navy-700) 75%,
-              var(--navy-600) 100%);
-  background-attachment: fixed;     /* gradient stays put while scrolling */
-  min-height: 100vh;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    background-color: #0a1840;
+    background-image:
+        /* soft white glow top-left */
+        radial-gradient(circle at 12% 8%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 38%),
+        /* golden glow bottom-right */
+        radial-gradient(circle at 88% 92%, rgba(184,134,11,0.45) 0%, rgba(184,134,11,0) 42%),
+        /* second golden accent middle-right */
+        radial-gradient(circle at 95% 35%, rgba(212,160,23,0.30) 0%, rgba(212,160,23,0) 35%),
+        /* second white accent bottom-left */
+        radial-gradient(circle at 8% 85%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 30%),
+        /* base dark-blue gradient */
+        linear-gradient(135deg, #0a1840 0%, #11214d 50%, #1a2d6b 100%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-size: cover;
 }
+
 
 /* Navbar */
 .navbar, nav {
